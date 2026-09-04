@@ -23,7 +23,7 @@ ambient_light_energy = 0.6
 [node name="TestTrack" parent="." instance=ExtResource("1_track")]
 
 [node name="Pony" parent="." instance=ExtResource("2_pony")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 25)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 95)
 
 [node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
 transform = Transform3D(0.707, -0.5, 0.5, 0, 0.707, 0.707, -0.707, -0.5, 0.5, 0, 10, 0)
