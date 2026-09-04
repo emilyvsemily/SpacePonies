@@ -71,8 +71,8 @@ Ponies aren't permanent: each has a **limited lifespan** and expires ("dies") on
 ## Milestone Roadmap
 
 1. **M0 — Project scaffold** *(done)*
-2. **M1 — Vertical slice, gray-box (current target):** one placeholder pony, one dumb test track, physics-driven janky movement, single-player, playable start-to-finish lap.
-3. **M2 — Core race loop:** 4 ponies, full race with placements, one wacky ability wired in, food pickups on the track (collection only — feeding comes in M4).
-4. **M3 — Online multiplayer:** up to 4 real players racing together online.
-5. **M4 — Breeding & Stable:** Mendelian trait system, stable UI, pony generation from two parents, the zero-G food-throwing feeding mechanic with upkeep scaling by stable size, and the pony lifespan/expiration timer (state + UI only — real-money renewal is a separate future milestone).
+2. **M1 — Vertical slice, gray-box** *(done)*
+3. **M2 — Core race loop** *(done)*
+4. **M3 — Online multiplayer** *(done — same-network direct-IP play, verified over real ENet connections; internet play across NATs without port-forwarding remains unsolved, deliberately deferred)*
+5. **M4 — Breeding & Stable (current target):** Mendelian trait system, stable UI, pony generation from two parents, the zero-G food-throwing feeding mechanic with upkeep scaling by stable size, and the pony lifespan/expiration timer (state + UI only — real-money renewal is a separate future milestone).
 6. **M5 — Content & polish:** reskin with chosen art style, expand trait library, more tracks, animation/jank polish.
