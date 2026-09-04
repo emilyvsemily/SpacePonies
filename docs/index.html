@@ -1,0 +1,529 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1"><style>:root{color-scheme:light}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found]){display:none!important}</style></head><body>
+<title>Space Pony Look Book</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&family=Figtree:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap');
+
+  :root{
+    --bg:#140f22;
+    --bg-2:#1a1330;
+    --surface:#1f1836;
+    --surface-2:#281f42;
+    --line:#3c3163;
+    --line-soft:#2c2450;
+    --text:#f3eefb;
+    --text-dim:#b6a9d6;
+    --text-faint:#8779ab;
+    --accent:#ff9a56;
+    --accent-soft:rgba(255,154,86,.16);
+    --accent-2:#6fe3c4;
+    --pip-on:#f3eefb;
+    --pip-off:#3c3163;
+    --shadow:0 24px 60px -30px rgba(0,0,0,.7);
+  }
+
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:
+      radial-gradient(ellipse 900px 500px at 18% -10%, rgba(255,154,86,.10), transparent 60%),
+      radial-gradient(ellipse 700px 500px at 90% 10%, rgba(111,227,196,.08), transparent 55%),
+      var(--bg);
+    color:var(--text);
+    font-family:'Figtree',ui-sans-serif,system-ui,sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+
+  h1,h2,h3{font-family:'Baloo 2',ui-rounded,'Figtree',sans-serif; text-wrap:balance; margin:0;}
+
+  .eyebrow{
+    font-family:'Space Mono',ui-monospace,monospace;
+    text-transform:uppercase;
+    letter-spacing:.14em;
+    font-size:.72rem;
+    color:var(--accent);
+  }
+
+  .wrap{max-width:1180px; margin:0 auto; padding:0 clamp(1.25rem,4vw,3rem);}
+
+  /* ---------- Hero ---------- */
+  header.hero{padding:clamp(3rem,7vw,4.5rem) 0 clamp(2.25rem,5vw,3rem);}
+  .hero-grid{
+    display:grid;
+    grid-template-columns:minmax(0,1.15fr) minmax(240px,0.85fr);
+    gap:clamp(2rem,5vw,3.5rem);
+    align-items:center;
+  }
+  header.hero h1{
+    font-size:clamp(2.1rem,4.6vw,3.15rem);
+    line-height:1.06;
+    font-weight:800;
+    margin:.6rem 0 1.1rem;
+  }
+  header.hero h1 em{
+    font-style:normal;
+    color:var(--accent);
+  }
+  .hero-lede{
+    color:var(--text-dim);
+    font-size:1.05rem;
+    line-height:1.65;
+    max-width:56ch;
+  }
+  .hero-lede strong{color:var(--text); font-weight:600;}
+
+  .hero-aside{
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-radius:20px;
+    padding:1.4rem 1.5rem;
+    box-shadow:var(--shadow);
+  }
+  .hero-aside .cap{
+    font-family:'Space Mono',monospace;
+    font-size:.68rem;
+    letter-spacing:.1em;
+    text-transform:uppercase;
+    color:var(--text-faint);
+    margin-top:.85rem;
+    display:block;
+    text-align:center;
+  }
+
+  /* ---------- Section intro ---------- */
+  .section-intro{padding:.5rem 0 2.25rem; border-top:1px solid var(--line-soft); padding-top:2.25rem;}
+  .section-intro h2{font-size:clamp(1.3rem,2.6vw,1.7rem); font-weight:700;}
+  .section-intro p{color:var(--text-dim); max-width:64ch; line-height:1.6; margin:.6rem 0 0;}
+
+  /* ---------- Direction cards ---------- */
+  .directions{display:flex; flex-direction:column; gap:clamp(2.5rem,5vw,3.5rem); padding-bottom:2rem;}
+
+  .card{
+    display:grid;
+    grid-template-columns:minmax(300px,380px) minmax(0,1fr);
+    gap:clamp(1.75rem,4vw,3rem);
+    align-items:start;
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-radius:26px;
+    padding:clamp(1.5rem,3vw,2.25rem);
+    box-shadow:var(--shadow);
+  }
+  .card.reverse{grid-template-columns:minmax(0,1fr) minmax(300px,380px);}
+  .card.reverse .art{order:2;}
+  .card.reverse .body{order:1;}
+
+  .art{
+    border-radius:18px;
+    overflow:hidden;
+    aspect-ratio:1/1;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    position:relative;
+  }
+  .art svg{width:100%; height:100%; display:block;}
+
+  .art.style-a{background:linear-gradient(155deg,#1c1640 0%,#241a4c 55%,#150f30 100%);}
+  .art.style-b{background:linear-gradient(155deg,#3a2a22 0%,#4a3527 55%,#2c1f19 100%);}
+  .art.style-c{background:linear-gradient(155deg,#0f2f3a 0%,#123a3a 55%,#0a2228 100%);}
+
+  .body{display:flex; flex-direction:column; gap:.9rem;}
+  .direction-tag{font-family:'Space Mono',monospace; font-size:.7rem; letter-spacing:.12em; text-transform:uppercase; color:var(--text-faint);}
+  .direction-name{font-size:clamp(1.55rem,3vw,2.05rem); font-weight:700; line-height:1.05;}
+  .direction-name .accent-a{color:#9fb4ff;}
+  .direction-name .accent-b{color:#f0a878;}
+  .direction-name .accent-c{color:#ff8fb8;}
+
+  .badge{
+    display:inline-flex;
+    align-items:center;
+    gap:.5rem;
+    align-self:flex-start;
+    background:var(--accent-soft);
+    border:1px solid rgba(255,154,86,.35);
+    color:var(--accent);
+    font-family:'Space Mono',monospace;
+    font-size:.72rem;
+    letter-spacing:.03em;
+    padding:.4rem .7rem;
+    border-radius:100px;
+  }
+  .badge svg{width:14px; height:14px; flex:none;}
+
+  .blurb{color:var(--text-dim); line-height:1.68; font-size:.98rem; max-width:60ch;}
+  .blurb strong{color:var(--text); font-weight:600;}
+
+  .meter-row{
+    display:flex; align-items:center; gap:.6rem;
+    margin-top:.35rem;
+    font-family:'Space Mono',monospace;
+    font-size:.72rem;
+    color:var(--text-faint);
+  }
+  .pips{display:flex; gap:5px;}
+  .pip{width:9px; height:9px; border-radius:2px; background:var(--pip-off);}
+  .pip.on{background:var(--pip-on);}
+
+  /* ---------- Footer ---------- */
+  footer{
+    border-top:1px solid var(--line-soft);
+    padding:clamp(2.25rem,5vw,3rem) 0 clamp(3rem,6vw,4rem);
+  }
+  footer .foot-grid{
+    display:flex; flex-wrap:wrap; gap:2rem; justify-content:space-between; align-items:flex-start;
+  }
+  footer h3{font-size:1.15rem; font-weight:700; margin-bottom:.5rem;}
+  footer p{color:var(--text-dim); line-height:1.6; max-width:52ch; margin:0;}
+  footer .meta{
+    font-family:'Space Mono',monospace;
+    font-size:.72rem;
+    color:var(--text-faint);
+    letter-spacing:.04em;
+    text-align:right;
+  }
+  footer .meta div + div{margin-top:.35rem;}
+
+  @media (max-width:860px){
+    .hero-grid{grid-template-columns:1fr;}
+    .hero-aside{order:-1;}
+    .card, .card.reverse{grid-template-columns:1fr;}
+    .card.reverse .art, .card.reverse .body{order:initial;}
+    .art{max-width:420px; margin:0 auto; aspect-ratio:4/3;}
+    footer .foot-grid{flex-direction:column;}
+    footer .meta{text-align:left;}
+  }
+</style>
+
+<div class="wrap">
+  <header class="hero">
+    <div class="hero-grid">
+      <div>
+        <span class="eyebrow">SpacePonies · Visual Design Track</span>
+        <h1>What does a <em>space pony</em> actually look like?</h1>
+        <p class="hero-lede">
+          The vertical slice runs on gray-box capsules — physics is real, art isn't, on purpose.
+          Genetics can warp a pony's leg count, tail type and silhouette across generations, so
+          <strong>"pony" is a vibe, not a body plan</strong>. Below are three honest, fully-realized
+          directions for what that vibe could look like on screen. Pick one, or steal pieces from all three.
+        </p>
+      </div>
+      <div class="hero-aside">
+        <svg viewBox="0 0 300 150" role="img" aria-label="Three gray placeholder capsules, each with an arrow pointing to a colorful question mark, representing the current gray-box pony waiting for an art direction.">
+          <g font-family="Space Mono, monospace" font-size="9" fill="#8779ab">
+            <text x="35" y="18" text-anchor="middle">NOW</text>
+            <text x="150" y="18" text-anchor="middle">M1</text>
+            <text x="265" y="18" text-anchor="middle">M5</text>
+          </g>
+          <!-- capsule 1 -->
+          <rect x="15" y="55" width="40" height="60" rx="20" fill="#4a4460" stroke="#6a6288" stroke-width="2"/>
+          <circle cx="35" cy="70" r="4" fill="#241c40"/>
+          <!-- arrow -->
+          <path d="M62,85 H92" stroke="#6a6288" stroke-width="2" fill="none" marker-end="url(#lookbook-arrow)"/>
+          <!-- capsule 2 -->
+          <rect x="130" y="55" width="40" height="60" rx="20" fill="#4a4460" stroke="#6a6288" stroke-width="2"/>
+          <circle cx="150" cy="70" r="4" fill="#241c40"/>
+          <!-- arrow -->
+          <path d="M177,85 H207" stroke="#ff9a56" stroke-width="2" fill="none" marker-end="url(#lookbook-arrow-accent)"/>
+          <!-- question mark blob -->
+          <circle cx="255" cy="85" r="32" fill="none" stroke="#ff9a56" stroke-width="2" stroke-dasharray="4 5"/>
+          <text x="255" y="94" text-anchor="middle" font-family="Baloo 2, sans-serif" font-size="30" font-weight="800" fill="#ff9a56">?</text>
+          <defs>
+            <marker id="lookbook-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M0,0 L10,5 L0,10 Z" fill="#6a6288"/>
+            </marker>
+            <marker id="lookbook-arrow-accent" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M0,0 L10,5 L0,10 Z" fill="#ff9a56"/>
+            </marker>
+          </defs>
+        </svg>
+        <span class="cap">the reskin nobody's picked yet</span>
+      </div>
+    </div>
+  </header>
+
+  <div class="section-intro">
+    <h2>Three directions, three different bets</h2>
+    <p>Each one commits to a different silhouette, a different production cost, and a different reason it should feel wholesome instead of weird-for-weird's-sake. None of them is the "safe" choice — that's rather the point of exploring this in parallel with engineering.</p>
+  </div>
+
+  <main class="directions">
+
+    <!-- ================= DIRECTION A ================= -->
+    <article class="card">
+      <div class="art style-a">
+        <svg viewBox="0 0 380 380" role="img" aria-label="A low-poly space pony made of flat-shaded angular facets, standing on three mismatched rocket-booster legs with flame thrusters, topped with a single glowing crystal antigravity horn.">
+          <!-- backdrop facets -->
+          <polygon points="0,380 100,250 0,150" fill="#201a48"/>
+          <polygon points="380,0 380,140 260,40" fill="#241d52"/>
+          <polygon points="380,380 380,270 300,380" fill="#1c1640"/>
+          <g fill="#6fe3c4" opacity=".55">
+            <rect x="40" y="45" width="6" height="6" transform="rotate(45 43 48)"/>
+            <rect x="330" y="200" width="5" height="5" transform="rotate(45 332 202)"/>
+            <rect x="60" y="180" width="4" height="4" transform="rotate(45 62 182)"/>
+            <rect x="300" y="60" width="5" height="5" transform="rotate(45 302 62)"/>
+          </g>
+
+          <!-- ground shadow -->
+          <ellipse cx="192" cy="347" rx="112" ry="16" fill="#0b0818" opacity=".55"/>
+
+          <!-- rocket-boot legs + flames -->
+          <polygon points="132,225 162,225 157,313 133,313" fill="#4a3d80"/>
+          <polygon points="133,313 157,313 148,353 126,338" fill="#ff9a56"/>
+          <polygon points="135,320 152,320 145,343 130,332" fill="#ffd166"/>
+
+          <polygon points="186,232 217,226 227,330 196,336" fill="#42356f"/>
+          <polygon points="196,336 227,330 217,365 191,352" fill="#ff9a56"/>
+          <polygon points="198,342 218,338 210,360 195,350" fill="#ffd166"/>
+
+          <polygon points="246,225 273,222 269,309 243,312" fill="#4a3d80"/>
+          <polygon points="243,312 269,309 259,345 238,332" fill="#ff9a56"/>
+          <polygon points="246,318 263,315 255,338 240,328" fill="#ffd166"/>
+
+          <!-- tail facets -->
+          <polygon points="128,205 100,192 118,178" fill="#8879c9"/>
+          <polygon points="128,220 96,215 116,198" fill="#4a3d80"/>
+
+          <!-- body -->
+          <polygon points="130,150 170,110 230,108 270,140 275,195 250,232 170,235 128,205" fill="#5b4b9e"/>
+          <polygon points="130,150 170,110 230,108 200,160" fill="#8879c9"/>
+          <polygon points="200,160 275,195 250,232 170,235 160,190" fill="#3f3372"/>
+
+          <!-- mane spikes -->
+          <polygon points="235,110 250,120 225,80" fill="#a89be0"/>
+          <polygon points="215,120 232,112 205,90" fill="#4a3d80"/>
+          <polygon points="196,130 212,120 186,96" fill="#a89be0"/>
+          <polygon points="177,140 192,128 167,106" fill="#4a3d80"/>
+
+          <!-- head -->
+          <polygon points="255,95 300,75 325,105 315,145 275,150 260,125" fill="#7669c0"/>
+          <polygon points="255,95 300,75 325,105 290,110" fill="#9c8fe0"/>
+          <polygon points="290,110 315,145 275,150 265,120" fill="#453873"/>
+
+          <!-- ears -->
+          <polygon points="270,80 280,55 288,82" fill="#9c8fe0"/>
+          <polygon points="300,70 312,48 316,75" fill="#7669c0"/>
+
+          <!-- antigrav horn -->
+          <polygon points="296,76 300,20 305,78" fill="#cdeeff"/>
+          <polygon points="298,76 300,32 302,77" fill="#eafcff"/>
+          <circle cx="300" cy="20" r="7" fill="#6fe3c4" opacity=".55"/>
+          <circle cx="300" cy="20" r="3" fill="#eafcff"/>
+
+          <!-- eyes -->
+          <polygon points="285,105 293,115 285,125 277,115" fill="#f3eefb"/>
+          <polygon points="283,111 289,115 283,120" fill="#241c40"/>
+          <polygon points="305,112 311,120 305,127 299,120" fill="#f3eefb"/>
+          <polygon points="304,117 309,120 304,124" fill="#241c40"/>
+
+          <!-- mouth -->
+          <polygon points="313,140 321,138 316,148" fill="#241c40"/>
+        </svg>
+      </div>
+      <div class="body">
+        <span class="direction-tag">Direction one</span>
+        <h3 class="direction-name">Faceted <span class="accent-a">Frontier</span></h3>
+        <span class="badge">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v6M9 22l3-6 3 6"/><path d="M6 10l6-4 6 4-6 4z"/></svg>
+          featured mutation: 3 rocket-boot legs, antigrav horn
+        </span>
+        <p class="blurb">
+          Flat-shaded, low-vertex geometry in the spirit of PS1-era 3D and vertex-lit Katamari-adjacent worlds —
+          chunky and jagged enough that it reads as goofy on sight, never sinister. Low-poly silhouettes already
+          look like they're vibrating at low frame rates, so <strong>the sine-wave wobble the controller adds
+          basically sells itself</strong> instead of fighting the model. It's also the cheapest of the three for a
+          small Godot team: simple meshes, a single flat/toon shader, and new breeding body-plans (swap a leg count,
+          re-facet a horn) are fast blockouts rather than full re-sculpts.
+        </p>
+        <div class="meter-row">
+          <span>Godot build effort</span>
+          <span class="pips"><span class="pip on"></span><span class="pip"></span><span class="pip"></span></span>
+          <span>low</span>
+        </div>
+      </div>
+    </article>
+
+    <!-- ================= DIRECTION B ================= -->
+    <article class="card reverse">
+      <div class="art style-b">
+        <svg viewBox="0 0 380 380" role="img" aria-label="A soft claymation-style space pony with a lopsided pinched body, four uneven noodle-like tentacle legs, a cinnamon-roll spiral tail, and three mismatched button eyes.">
+          <!-- floating clay stars -->
+          <path d="M55,70 l5,13 13,2 -10,9 3,13 -11,-7 -11,7 3,-13 -10,-9 13,-2 z" fill="#f3e1c8" opacity=".7"/>
+          <path d="M335,175 l4,10 10,1 -8,7 2,10 -8,-5 -8,5 2,-10 -8,-7 10,-1 z" fill="#f3e1c8" opacity=".55"/>
+
+          <!-- ground shadow -->
+          <ellipse cx="192" cy="347" rx="118" ry="15" fill="#241206" opacity=".4"/>
+
+          <!-- tentacle legs -->
+          <path d="M150,250 C140,275 165,285 150,310 C138,330 160,340 150,355" stroke="#b8663f" stroke-width="20" fill="none" stroke-linecap="round"/>
+          <path d="M185,255 C195,275 175,290 190,315 C200,335 178,345 188,358" stroke="#a8563a" stroke-width="18" fill="none" stroke-linecap="round"/>
+          <path d="M225,255 C215,278 240,292 222,318 C210,338 232,348 220,360" stroke="#b8663f" stroke-width="22" fill="none" stroke-linecap="round"/>
+          <path d="M255,250 C265,272 245,288 260,306 C270,324 250,332 258,346" stroke="#a8563a" stroke-width="16" fill="none" stroke-linecap="round"/>
+
+          <!-- tail: cinnamon-roll spiral -->
+          <path d="M110,255 a24,24 0 1,1 48,0 a16,16 0 1,1 -32,0 a8,8 0 1,1 16,0" fill="none" stroke="#9fbf8f" stroke-width="9" stroke-linecap="round"/>
+
+          <!-- body -->
+          <path d="M120,210 C105,165 130,105 195,100 C260,95 300,140 290,195 C300,245 260,280 195,278 C125,282 100,250 120,210 Z" fill="#d98a5f"/>
+          <path d="M250,180 C280,200 285,240 250,265 C258,232 250,202 250,180 Z" fill="#b8663f" opacity=".5"/>
+          <path d="M150,220 C145,250 180,265 210,255 C240,248 245,220 225,205 C200,190 160,195 150,220 Z" fill="#f3e1c8" opacity=".9"/>
+
+          <!-- thumbprint dimples -->
+          <g fill="#7a4a30" opacity=".28">
+            <ellipse cx="168" cy="150" rx="8" ry="5"/>
+            <ellipse cx="255" cy="165" rx="7" ry="5" transform="rotate(20 255 165)"/>
+            <ellipse cx="140" cy="200" rx="6" ry="4" transform="rotate(-10 140 200)"/>
+            <ellipse cx="230" cy="235" rx="7" ry="4" transform="rotate(15 230 235)"/>
+          </g>
+
+          <!-- head -->
+          <path d="M240,100 C225,70 260,45 295,55 C325,63 330,95 310,115 C295,130 255,125 240,100 Z" fill="#e39a6b"/>
+
+          <!-- ears -->
+          <path d="M255,55 C250,35 268,20 278,35 C285,48 270,60 255,55 Z" fill="#d98a5f"/>
+          <path d="M300,50 C310,30 335,35 330,55 C326,70 305,68 300,50 Z" fill="#d98a5f"/>
+
+          <!-- mane coils + antenna -->
+          <path d="M245,60 C240,45 255,40 250,55 C247,63 258,58 253,48" stroke="#e79a8d" stroke-width="7" fill="none" stroke-linecap="round"/>
+          <path d="M272,42 C267,27 282,22 277,37 C274,45 285,40 280,30" stroke="#e79a8d" stroke-width="7" fill="none" stroke-linecap="round"/>
+          <line x1="277" y1="24" x2="274" y2="10" stroke="#e79a8d" stroke-width="4" stroke-linecap="round"/>
+          <path d="M274,10 l3,7 7,1 -5,5 1,7 -6,-4 -6,4 1,-7 -5,-5 7,-1 z" fill="#6fe3c4"/>
+
+          <!-- eyes (three, mismatched) -->
+          <circle cx="270" cy="85" r="16" fill="#fbf3e6"/>
+          <circle cx="274" cy="88" r="7" fill="#2a1c12"/>
+          <circle cx="276" cy="85" r="2" fill="#fbf3e6"/>
+
+          <circle cx="303" cy="78" r="11" fill="#fbf3e6"/>
+          <circle cx="306" cy="80" r="5" fill="#2a1c12"/>
+
+          <circle cx="292" cy="106" r="7" fill="#fbf3e6"/>
+          <circle cx="293" cy="107" r="3" fill="#2a1c12"/>
+
+          <!-- mouth -->
+          <path d="M270,112 Q283,122 296,110" stroke="#5c3821" stroke-width="3" fill="none" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div class="body">
+        <span class="direction-tag">Direction two</span>
+        <h3 class="direction-name">The <span class="accent-b">Doughnaut</span></h3>
+        <span class="badge">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="3"/><circle cx="7" cy="14" r="1.5"/><circle cx="17" cy="14" r="1.5"/></svg>
+          featured mutation: 4 noodle-tentacle legs, third eye
+        </span>
+        <p class="blurb">
+          Hand-pinched clay with visible thumbprints, lopsided proportions and soft matte shading, in the spirit of
+          Aardman and Laika stop-motion. This is the direction where <strong>"janky by design" stops needing an
+          excuse</strong> — a wobbly, imperfect surface is exactly what real clay looks like, so the procedural
+          bob reads as material, not as a bug. It's also the hardest sell for a small team: faking clay convincingly
+          in real-time (matte sub-surface look, dimple texture, asymmetric silhouettes) needs real shader work, and
+          every new bred body-plan is closer to a fresh sculpt than a simple mesh swap.
+        </p>
+        <div class="meter-row">
+          <span>Godot build effort</span>
+          <span class="pips"><span class="pip on"></span><span class="pip on"></span><span class="pip on"></span></span>
+          <span>high</span>
+        </div>
+      </div>
+    </article>
+
+    <!-- ================= DIRECTION C ================= -->
+    <article class="card">
+      <div class="art style-c">
+        <svg viewBox="0 0 380 380" role="img" aria-label="A flat vector paper-cutout style space pony with a thick black outline, bold candy colors, scalloped paper wings on its back, and a stacked paper flame for a rocket tail.">
+          <!-- backdrop paper moon -->
+          <circle cx="300" cy="90" r="55" fill="#2c2158"/>
+          <circle cx="306" cy="84" r="49" fill="#3a2d72"/>
+          <path d="M55,55 l4,10 10,1 -8,7 2,10 -8,-5 -8,5 2,-10 -8,-7 10,-1 z" fill="#fff1de" opacity=".8"/>
+
+          <!-- ground shadow -->
+          <ellipse cx="192" cy="347" rx="115" ry="14" fill="#0d1f1f" opacity=".5"/>
+
+          <!-- rocket tail: stacked paper flame -->
+          <polygon points="70,205 30,225 68,232 34,255 72,252 48,280 90,258" fill="#d6437f"/>
+          <polygon points="78,212 46,228 76,233 50,252 80,250 62,272 96,254" fill="#ffd166"/>
+          <polygon points="86,220 62,232 84,236 66,252 88,251 74,268 100,254" fill="#fff1de"/>
+
+          <!-- legs -->
+          <rect x="128" y="255" width="26" height="80" rx="13" fill="#6fe3c4" stroke="#201430" stroke-width="6"/>
+          <rect x="168" y="258" width="26" height="80" rx="13" fill="#5bd0b2" stroke="#201430" stroke-width="6"/>
+          <rect x="212" y="258" width="26" height="80" rx="13" fill="#6fe3c4" stroke="#201430" stroke-width="6"/>
+          <rect x="252" y="255" width="26" height="80" rx="13" fill="#5bd0b2" stroke="#201430" stroke-width="6"/>
+          <ellipse cx="141" cy="337" rx="15" ry="7" fill="#201430"/>
+          <ellipse cx="181" cy="340" rx="15" ry="7" fill="#201430"/>
+          <ellipse cx="225" cy="340" rx="15" ry="7" fill="#201430"/>
+          <ellipse cx="265" cy="337" rx="15" ry="7" fill="#201430"/>
+
+          <!-- wings (layered paper) -->
+          <path d="M120,150 C70,132 48,92 62,62 C82,92 100,84 104,112 C122,94 132,64 152,58 C144,92 152,120 132,140 C124,148 120,150 120,150 Z" fill="#f4b94a" opacity=".9"/>
+          <path d="M112,150 C62,130 42,88 56,58 C76,90 96,80 100,110 C118,90 130,60 150,53 C140,88 150,118 128,138 C120,148 112,150 112,150 Z" fill="#ffd166" stroke="#201430" stroke-width="6" stroke-linejoin="round"/>
+
+          <!-- body (shadow + main, paper stack) -->
+          <rect x="100" y="148" width="170" height="140" rx="45" fill="#d6437f"/>
+          <rect x="92" y="140" width="170" height="140" rx="45" fill="#ff6fa5" stroke="#201430" stroke-width="7"/>
+
+          <!-- mane triangles -->
+          <polygon points="250,120 268,80 280,124" fill="#ffd166" stroke="#201430" stroke-width="5" stroke-linejoin="round"/>
+          <polygon points="272,116 288,78 298,120" fill="#6fe3c4" stroke="#201430" stroke-width="5" stroke-linejoin="round"/>
+
+          <!-- head (shadow + main) -->
+          <circle cx="298" cy="118" r="54" fill="#d6437f"/>
+          <circle cx="290" cy="110" r="54" fill="#fff1de" stroke="#201430" stroke-width="7"/>
+
+          <!-- blush -->
+          <circle cx="258" cy="128" r="9" fill="#ff9fc4" opacity=".8"/>
+          <circle cx="322" cy="128" r="9" fill="#ff9fc4" opacity=".8"/>
+
+          <!-- eyes -->
+          <circle cx="272" cy="100" r="20" fill="#fff" stroke="#201430" stroke-width="4"/>
+          <circle cx="279" cy="104" r="9" fill="#201430"/>
+          <circle cx="315" cy="96" r="16" fill="#fff" stroke="#201430" stroke-width="4"/>
+          <circle cx="321" cy="99" r="7" fill="#201430"/>
+
+          <!-- mouth -->
+          <path d="M280,130 Q292,140 306,128" stroke="#201430" stroke-width="6" fill="none" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div class="body">
+        <span class="direction-tag">Direction three</span>
+        <h3 class="direction-name">Cutout <span class="accent-c">Cosmos</span></h3>
+        <span class="badge">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2c-4 3-4 9 0 12 4-3 4-9 0-12z"/><path d="M3 16c3-1 6 0 9 2 3-2 6-3 9-2"/></svg>
+          featured mutation: paper wings, stacked flame rocket-tail
+        </span>
+        <p class="blurb">
+          Bold flat color, thick ink outlines and offset "paper layer" drop-shadows, closer to collage/cutout
+          animation than 3D at all. Candy-bright and blunt-shaped, it lands wholesome-absurd through sheer
+          cheerfulness and <strong>reads instantly at a glance during a frantic four-way race</strong> — exactly
+          when a busier style would turn to noise. It's the cheapest and fastest of the three to produce and
+          reskin per breeding trait (flat meshes or billboards, no complex shading), but flat shapes can look
+          pasted-on in a physics-driven 3D track unless the team commits to billboarding or careful faceting to
+          keep it feeling embedded in the world rather than stickered onto it.
+        </p>
+        <div class="meter-row">
+          <span>Godot build effort</span>
+          <span class="pips"><span class="pip on"></span><span class="pip on"></span><span class="pip"></span></span>
+          <span>low–medium</span>
+        </div>
+      </div>
+    </article>
+
+  </main>
+
+  <footer>
+    <div class="foot-grid">
+      <div>
+        <h3>None of these are final.</h3>
+        <p>Mixing is fair game — a Faceted-Frontier body with Doughnaut-style asymmetric proportions, or
+        Cutout Cosmos color logic over a low-poly mesh, are all reasonable next sketches. The goal here is a
+        direction to reskin M1's gray-box capsule toward at M5, not a locked art bible.</p>
+      </div>
+      <div class="meta">
+        <div>SpacePonies — Visual Design Track</div>
+        <div>Proposed against M1 (vertical slice, gray-box)</div>
+        <div>For the M5 reskin decision</div>
+      </div>
+    </div>
+  </footer>
+</div>
+
+</body></html>
