@@ -1000,6 +1000,7 @@
         <div class="engine-controls">
           <button type="button" class="engine-btn active" id="btn-walk">Walk Cycle</button>
           <button type="button" class="engine-btn" id="btn-roll">Zero-G Barrel Roll</button>
+          <button type="button" class="engine-btn" id="btn-turbo">Turbo Boost</button>
         </div>
         <p class="engine-caption" id="pony-caption">Three mismatched rocket-boots, each running its own clock — the whole rig looks like it shouldn't hold together, and locomotes anyway.</p>
       </div>
@@ -1030,6 +1031,7 @@
   var canvas = document.getElementById('pony-canvas');
   var btnWalk = document.getElementById('btn-walk');
   var btnRoll = document.getElementById('btn-roll');
+  var btnTurbo = document.getElementById('btn-turbo');
   var caption = document.getElementById('pony-caption');
   var hint = document.getElementById('pony-hint');
 
@@ -1037,7 +1039,8 @@
 
   var CAPTIONS = {
     walk: "Three mismatched rocket-boots, each running its own clock — the whole rig looks like it shouldn't hold together, and locomotes anyway.",
-    roll: "No gravity, no up-or-down — the body spins a full 360° around its own nose-to-tail axis while legs, tail and mane flail loose, like a ragdoll tumbling in freefall."
+    roll: "No gravity, no up-or-down — the body spins a full 360° around its own nose-to-tail axis while legs, tail and mane flail loose, like a ragdoll tumbling in freefall.",
+    turbo: "The “fart-boost” ability gene, taken completely literally: a mysterious sputter of fire and shifting gas kicks out from somewhere near the tail, and the whole body bucks forward on every pulse like a tiny, unexplained explosion — no gravity out here, so the exhaust just drifts."
   };
 
   try {
@@ -1308,10 +1311,131 @@
       trailGeo.attributes.position.needsUpdate = true;
     }
 
+    // ---------- turbo exhaust (fire + mystery gas, same Points/BufferGeometry technique as the horn trail
+    // above, extended with per-particle velocity/lifetime so it bursts and disperses instead of just tracing
+    // a path) ----------
+    var EX_N = 110;
+    var exPos = new Float32Array(EX_N * 3);
+    var exCol = new Float32Array(EX_N * 3);
+    var exState = [];
+    for (var exI = 0; exI < EX_N; exI++){ exState.push({ vx: 0, vy: 0, vz: 0, age: 0, life: 0, r: 0, g: 0, b: 0, gas: false }); }
+    var exCursor = 0;
+    var exGeo = new THREE.BufferGeometry();
+    exGeo.setAttribute('position', new THREE.BufferAttribute(exPos, 3));
+    exGeo.setAttribute('color', new THREE.BufferAttribute(exCol, 3));
+    var exMat = new THREE.PointsMaterial({
+      size: 0.12, vertexColors: true, transparent: true, opacity: 0.9,
+      blending: THREE.AdditiveBlending, depthWrite: false, sizeAttenuation: true
+    });
+    var exhaust = new THREE.Points(exGeo, exMat);
+    exhaust.visible = false;
+    scene.add(exhaust);
+
+    // emitter sits at the rump/tail-base — a little below and behind the tail attachment point
+    var exhaustEmitter = new THREE.Object3D();
+    exhaustEmitter.position.set(0, -0.06, -1.05);
+    rig.add(exhaustEmitter);
+    var exhaustAim = new THREE.Object3D();
+    exhaustAim.position.set(0, -0.06, -1.9);
+    rig.add(exhaustAim);
+    var exOrigin = new THREE.Vector3();
+    var exAimPos = new THREE.Vector3();
+    var exDir = new THREE.Vector3();
+
+    var GAS_HUES = [0.42, 0.48, 0.58, 0.78, 0.86]; // teal/cyan through violet/magenta — deliberately unnatural
+    var exColorScratch = new THREE.Color();
+
+    function spawnExhaustParticle(isGas){
+      var idx = exCursor; exCursor = (exCursor + 1) % EX_N;
+      var st = exState[idx];
+
+      // spread cone around the backward aim direction, wider/lazier for gas than for fire
+      var spread = isGas ? 0.9 : 0.45;
+      var jx = (Math.random() - 0.5) * spread;
+      var jy = (Math.random() - 0.5) * spread * 0.8;
+      var jz = (Math.random() - 0.5) * spread;
+      var speed = isGas ? (0.55 + Math.random() * 0.7) : (1.5 + Math.random() * 1.3);
+
+      st.vx = exDir.x * speed + jx;
+      st.vy = exDir.y * speed + jy + (isGas ? 0.15 : 0); // gas wafts slightly upward-ish, still zero-G-loose
+      st.vz = exDir.z * speed + jz;
+      st.age = 0;
+      st.life = isGas ? (0.6 + Math.random() * 0.55) : (0.28 + Math.random() * 0.22);
+      st.gas = isGas;
+
+      if (isGas){
+        var hue = GAS_HUES[(Math.random() * GAS_HUES.length) | 0] + (Math.random() - 0.5) * 0.05;
+        exColorScratch.setHSL(hue, 0.65, 0.58);
+        st.r = exColorScratch.r * 0.6; st.g = exColorScratch.g * 0.6; st.b = exColorScratch.b * 0.6;
+      } else {
+        // matches the existing flame palette used on the rocket-boot legs
+        var fireMix = Math.random();
+        st.r = 1.0;
+        st.g = 0.6 + fireMix * 0.28; // ff9a56 -> ffd166
+        st.b = 0.34 + fireMix * 0.06;
+      }
+
+      var px = exOrigin.x + (Math.random() - 0.5) * 0.05;
+      var py = exOrigin.y + (Math.random() - 0.5) * 0.05;
+      var pz = exOrigin.z + (Math.random() - 0.5) * 0.05;
+      exPos[idx * 3] = px; exPos[idx * 3 + 1] = py; exPos[idx * 3 + 2] = pz;
+      exCol[idx * 3] = st.r; exCol[idx * 3 + 1] = st.g; exCol[idx * 3 + 2] = st.b;
+    }
+
+    function spawnExhaustBurst(){
+      exhaustEmitter.getWorldPosition(exOrigin);
+      exhaustAim.getWorldPosition(exAimPos);
+      exDir.subVectors(exAimPos, exOrigin).normalize();
+      var fireCount = 5 + ((Math.random() * 3) | 0);
+      var gasCount = 3 + ((Math.random() * 3) | 0);
+      for (var f = 0; f < fireCount; f++){ spawnExhaustParticle(false); }
+      for (var g = 0; g < gasCount; g++){ spawnExhaustParticle(true); }
+    }
+
+    function updateExhaust(dt){
+      for (var i = 0; i < EX_N; i++){
+        var st = exState[i];
+        if (st.life <= 0) continue;
+        st.age += dt;
+        if (st.age >= st.life){
+          st.life = 0;
+          exCol[i * 3] = 0; exCol[i * 3 + 1] = 0; exCol[i * 3 + 2] = 0;
+          continue;
+        }
+        // drag so particles billow and slow rather than flying off forever — still no gravity, just dispersing
+        var drag = st.gas ? 0.55 : 0.85;
+        st.vx *= (1 - dt * drag); st.vy *= (1 - dt * drag); st.vz *= (1 - dt * drag);
+        exPos[i * 3] += st.vx * dt;
+        exPos[i * 3 + 1] += st.vy * dt;
+        exPos[i * 3 + 2] += st.vz * dt;
+
+        var fade = 1 - st.age / st.life;
+        // gas gets an unpredictable flicker on top of the fade — the "mysterious" part
+        var flicker = st.gas ? (0.65 + 0.35 * Math.sin(st.age * 37 + i * 12.7)) : (0.85 + 0.15 * Math.sin(st.age * 90 + i));
+        exCol[i * 3] = st.r * fade * flicker;
+        exCol[i * 3 + 1] = st.g * fade * flicker;
+        exCol[i * 3 + 2] = st.b * fade * flicker;
+      }
+      exGeo.attributes.position.needsUpdate = true;
+      exGeo.attributes.color.needsUpdate = true;
+    }
+
+    function resetExhaust(){
+      for (var i = 0; i < EX_N; i++){
+        var st = exState[i];
+        st.life = 0; st.age = 0;
+        exCol[i * 3] = 0; exCol[i * 3 + 1] = 0; exCol[i * 3 + 2] = 0;
+      }
+      exGeo.attributes.color.needsUpdate = true;
+    }
+
     // ---------- animation ----------
     var mode = 'walk';
     var clock = new THREE.Clock();
     var bodyBaseY = 0;
+    var turboNextPulse = 0;
+    var turboRecoilZ = 0, turboRecoilVZ = 0;
+    var turboRecoilPitch = 0, turboRecoilVPitch = 0;
 
     function animateWalk(t, dt){
       rig.position.y = bodyBaseY + 1.32 + Math.abs(Math.sin(t * 6.2)) * 0.09;
@@ -1393,6 +1517,61 @@
       updateTrail();
     }
 
+    // zero-G turbo boost: the pony just floats (no locomotion target), and every exhaust pulse from the
+    // tail-base fires a recoil impulse straight into the same spring-damper joint system the legs already
+    // use for walk/roll, so the whole body bucks/shudders on each thrust instead of sliding smoothly.
+    function animateTurbo(t, dt){
+      if (t >= turboNextPulse){
+        turboNextPulse = t + 0.3 + Math.random() * 0.22; // irregular cadence — keeps it janky, not metronomic
+        turboRecoilVZ += 2.6 + Math.random() * 0.9; // forward lurch: thrust fires backward, pony kicks forward
+        turboRecoilVPitch += 2.0 + Math.random() * 0.8; // a little buck/shudder through the body
+        legs.forEach(function(leg){
+          leg.hipVX -= 0.9 + Math.random() * 0.6;
+          leg.hipVZ += (Math.random() - 0.5) * 2.0;
+        });
+        spawnExhaustBurst();
+      }
+
+      var rz = spring(turboRecoilZ, turboRecoilVZ, 0, 42, 7.5, dt); turboRecoilZ = rz[0]; turboRecoilVZ = rz[1];
+      var rp = spring(turboRecoilPitch, turboRecoilVPitch, 0, 48, 8.5, dt); turboRecoilPitch = rp[0]; turboRecoilVPitch = rp[1];
+
+      rig.position.y = bodyBaseY + 1.32 + Math.sin(t * 1.1) * 0.05;
+      rig.position.z = turboRecoilZ * 0.045;
+      rig.position.x = Math.sin(t * 0.7) * 0.06;
+      rig.rotation.x = -turboRecoilPitch * 0.05;
+      rig.rotation.y = Math.sin(t * 0.55) * 0.14;
+      rig.rotation.z = Math.sin(t * 0.9 + 1) * 0.05;
+
+      headGroup.rotation.x = Math.sin(t * 3.1) * 0.05 + turboRecoilPitch * 0.02;
+      headGroup.rotation.z = Math.sin(t * 2.3 + 0.5) * 0.09;
+      hornGroup.rotation.z = Math.sin(t * 5.4) * 0.12;
+
+      legs.forEach(function(leg, i){
+        var hipTargetX = -0.12 + Math.sin(t * 1.7 + leg.phase) * 0.1;
+        var hipTargetZ = Math.sin(t * 1.3 + leg.phase) * 0.12;
+        var rx = spring(leg.hipX, leg.hipVX, hipTargetX, 60, 6, dt); leg.hipX = rx[0]; leg.hipVX = rx[1];
+        var rzl = spring(leg.hipZ, leg.hipVZ, hipTargetZ, 60, 6, dt); leg.hipZ = rzl[0]; leg.hipVZ = rzl[1];
+        leg.group.rotation.x = leg.hipX;
+        leg.group.rotation.z = leg.hipZ;
+
+        var kneeTargetX = 0.25 - leg.hipVX * 0.05;
+        var kneeTargetZ = -leg.hipVZ * 0.04;
+        var kx = spring(leg.kneeX, leg.kneeVX, kneeTargetX, 45, 4.5, dt); leg.kneeX = kx[0]; leg.kneeVX = kx[1];
+        var kz = spring(leg.kneeZ, leg.kneeVZ, kneeTargetZ, 45, 4.5, dt); leg.kneeZ = kz[0]; leg.kneeVZ = kz[1];
+        leg.knee.rotation.x = leg.kneeX;
+        leg.knee.rotation.z = leg.kneeZ;
+
+        var flick = 0.75 + Math.sin(t * 20 + i * 4) * 0.15;
+        leg.flameOuter.scale.y = Math.max(0.35, flick);
+        leg.flameInner.scale.y = Math.max(0.3, flick * 0.85 + 0.15);
+      });
+
+      tail.rotation.x = Math.sin(t * 4.4) * 0.2 - turboRecoilPitch * 0.06;
+      tail.rotation.z = Math.sin(t * 3.1 + 1) * 0.22;
+
+      updateExhaust(dt);
+    }
+
     function resetPose(){
       rig.rotation.set(0, 0, 0);
       rig.position.set(0, bodyBaseY + 1.32, 0);
@@ -1405,12 +1584,19 @@
       });
     }
 
+    function resetTurbo(){
+      turboRecoilZ = turboRecoilVZ = turboRecoilPitch = turboRecoilVPitch = 0;
+      turboNextPulse = clock.getElapsedTime();
+      resetExhaust();
+    }
+
     function tick(){
       requestAnimationFrame(tick);
       var dt = Math.min(clock.getDelta(), 0.05);
       var t = clock.getElapsedTime();
-      if (mode === 'walk'){ animateWalk(t, dt); trail.visible = false; }
-      else { animateRoll(t, dt); trail.visible = true; }
+      if (mode === 'walk'){ animateWalk(t, dt); trail.visible = false; exhaust.visible = false; }
+      else if (mode === 'roll'){ animateRoll(t, dt); trail.visible = true; exhaust.visible = false; }
+      else { animateTurbo(t, dt); trail.visible = false; exhaust.visible = true; }
       renderer.render(scene, camera);
     }
     resetPose();
@@ -1422,11 +1608,14 @@
       mode = next;
       btnWalk.classList.toggle('active', next === 'walk');
       btnRoll.classList.toggle('active', next === 'roll');
+      btnTurbo.classList.toggle('active', next === 'turbo');
       caption.textContent = CAPTIONS[next];
       if (next === 'walk') resetPose();
+      if (next === 'turbo') resetTurbo();
     }
     btnWalk.addEventListener('click', function(){ setMode('walk'); });
     btnRoll.addEventListener('click', function(){ setMode('roll'); });
+    btnTurbo.addEventListener('click', function(){ setMode('turbo'); });
 
     // ---------- controls: manual drag-orbit ----------
     var dragging = false, lastX = 0, lastY = 0;
