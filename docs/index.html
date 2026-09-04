@@ -16,9 +16,6 @@
     --accent:#ff9a56;
     --accent-soft:rgba(255,154,86,.16);
     --accent-2:#6fe3c4;
-    --accent-stitch:#d9694f;
-    --accent-vinyl:#ff8fc2;
-    --accent-bean:#e8b94a;
     --pip-on:#f3eefb;
     --pip-off:#3c3163;
     --shadow:0 24px 60px -30px rgba(0,0,0,.7);
@@ -70,7 +67,7 @@
     color:var(--text-dim);
     font-size:1.05rem;
     line-height:1.65;
-    max-width:58ch;
+    max-width:56ch;
   }
   .hero-lede strong{color:var(--text); font-weight:600;}
 
@@ -93,36 +90,9 @@
   }
 
   /* ---------- Section intro ---------- */
-  .section-intro{padding:.5rem 0 1.5rem; border-top:1px solid var(--line-soft); padding-top:2.25rem;}
+  .section-intro{padding:.5rem 0 2.25rem; border-top:1px solid var(--line-soft); padding-top:2.25rem;}
   .section-intro h2{font-size:clamp(1.3rem,2.6vw,1.7rem); font-weight:700;}
-  .section-intro p{color:var(--text-dim); max-width:66ch; line-height:1.6; margin:.6rem 0 0;}
-
-  /* ---------- Shared-DNA strip ---------- */
-  .dna-strip{
-    display:flex;
-    flex-wrap:wrap;
-    gap:1.4rem 2.4rem;
-    background:var(--surface-2);
-    border-top:1px dashed var(--line);
-    border-bottom:1px dashed var(--line);
-    padding:1.35rem clamp(1.1rem,3vw,1.9rem);
-    border-radius:14px;
-    margin:0 0 2.75rem;
-  }
-  .dna-item{display:flex; align-items:center; gap:.8rem; flex:1 1 210px;}
-  .dna-icon{
-    width:38px; height:38px; flex:none; border-radius:50%;
-    background:var(--accent-soft);
-    display:flex; align-items:center; justify-content:center;
-    color:var(--accent);
-  }
-  .dna-icon svg{width:19px; height:19px;}
-  .dna-text{display:flex; flex-direction:column; gap:.15rem;}
-  .dna-label{font-weight:600; color:var(--text); font-size:.92rem;}
-  .dna-sub{
-    font-family:'Space Mono',monospace; font-size:.65rem;
-    letter-spacing:.08em; text-transform:uppercase; color:var(--text-faint);
-  }
+  .section-intro p{color:var(--text-dim); max-width:64ch; line-height:1.6; margin:.6rem 0 0;}
 
   /* ---------- Direction cards ---------- */
   .directions{display:flex; flex-direction:column; gap:clamp(2.5rem,5vw,3.5rem); padding-bottom:2rem;}
@@ -153,20 +123,16 @@
   }
   .art svg{width:100%; height:100%; display:block;}
 
-  .art.style-stitch{background:linear-gradient(155deg,#2b2013 0%,#3c2c1a 55%,#1f160e 100%);}
-  .art.style-vinyl{
-    background:
-      radial-gradient(ellipse 260px 200px at 72% 20%, rgba(255,143,194,.16), transparent 62%),
-      linear-gradient(155deg,#10192f 0%,#132a42 55%,#0a1422 100%);
-  }
-  .art.style-bean{background:linear-gradient(155deg,#26210f 0%,#35301a 55%,#1a160a 100%);}
+  .art.style-a{background:linear-gradient(155deg,#1c1640 0%,#241a4c 55%,#150f30 100%);}
+  .art.style-b{background:linear-gradient(155deg,#3a2a22 0%,#4a3527 55%,#2c1f19 100%);}
+  .art.style-c{background:linear-gradient(155deg,#0f2f3a 0%,#123a3a 55%,#0a2228 100%);}
 
   .body{display:flex; flex-direction:column; gap:.9rem;}
   .direction-tag{font-family:'Space Mono',monospace; font-size:.7rem; letter-spacing:.12em; text-transform:uppercase; color:var(--text-faint);}
   .direction-name{font-size:clamp(1.55rem,3vw,2.05rem); font-weight:700; line-height:1.05;}
-  .direction-name .accent-stitch{color:var(--accent-stitch);}
-  .direction-name .accent-vinyl{color:var(--accent-vinyl);}
-  .direction-name .accent-bean{color:var(--accent-bean);}
+  .direction-name .accent-a{color:#9fb4ff;}
+  .direction-name .accent-b{color:#f0a878;}
+  .direction-name .accent-c{color:#ff8fb8;}
 
   .badge{
     display:inline-flex;
@@ -223,7 +189,6 @@
     .card, .card.reverse{grid-template-columns:1fr;}
     .card.reverse .art, .card.reverse .body{order:initial;}
     .art{max-width:420px; margin:0 auto; aspect-ratio:4/3;}
-    .dna-strip{border-radius:0; margin-left:calc(-1 * clamp(1.25rem,4vw,3rem)); margin-right:calc(-1 * clamp(1.25rem,4vw,3rem)); padding-left:clamp(1.25rem,4vw,3rem); padding-right:clamp(1.25rem,4vw,3rem);}
     footer .foot-grid{flex-direction:column;}
     footer .meta{text-align:left;}
   }
@@ -233,347 +198,311 @@
   <header class="hero">
     <div class="hero-grid">
       <div>
-        <span class="eyebrow">SpacePonies · Visual Design Track — Direction 2 deep dive</span>
-        <h1>The Doughnaut got picked. Now it has to work as a <em>toy</em>.</h1>
+        <span class="eyebrow">SpacePonies · Visual Design Track</span>
+        <h1>What does a <em>space pony</em> actually look like?</h1>
         <p class="hero-lede">
-          The creator's reaction to the first Look Book was immediate and specific: <strong>Direction 2,
-          The Doughnaut</strong> — hand-pinched body, noodle-tentacle legs, cinnamon-roll tail, eyes that
-          don't match — was the one. The brief now is narrower and more concrete: push that same silhouette
-          until it reads as an actual collectible plush, the kind of thing you'd find shrink-wrapped on a
-          shelf with a number on the box. Below are three ways to get there — same body plan, three different
-          plush-toy executions.
+          The vertical slice runs on gray-box capsules — physics is real, art isn't, on purpose.
+          Genetics can warp a pony's leg count, tail type and silhouette across generations, so
+          <strong>"pony" is a vibe, not a body plan</strong>. Below are three honest, fully-realized
+          directions for what that vibe could look like on screen. Pick one, or steal pieces from all three.
         </p>
       </div>
       <div class="hero-aside">
-        <svg viewBox="0 0 300 180" role="img" aria-label="A diagram showing the three original style directions, with The Doughnaut circled as the one the creator picked, branching into three new plush-toy execution styles: Stitch, Vinyl and Bean.">
-          <g font-family="Space Mono, monospace" font-size="8" fill="#8779ab" letter-spacing="1">
-            <text x="50" y="14" text-anchor="middle">ROUND 1</text>
-            <text x="182" y="14" text-anchor="middle">ROUND 2</text>
+        <svg viewBox="0 0 300 150" role="img" aria-label="Three gray placeholder capsules, each with an arrow pointing to a colorful question mark, representing the current gray-box pony waiting for an art direction.">
+          <g font-family="Space Mono, monospace" font-size="9" fill="#8779ab">
+            <text x="35" y="18" text-anchor="middle">NOW</text>
+            <text x="150" y="18" text-anchor="middle">M1</text>
+            <text x="265" y="18" text-anchor="middle">M5</text>
           </g>
-
-          <!-- original direction 1: faceted (passed over) -->
-          <polygon points="50,32 62,44 50,56 38,44" fill="none" stroke="#4a4460" stroke-width="2" opacity=".55"/>
-          <text x="50" y="70" text-anchor="middle" font-family="Space Mono, monospace" font-size="7" fill="#6a6288">FACETED</text>
-
-          <!-- original direction 2: the doughnaut, picked -->
-          <circle cx="50" cy="93" r="15" fill="#d98a5f"/>
-          <circle cx="50" cy="93" r="19" fill="none" stroke="#ff9a56" stroke-width="2" stroke-dasharray="3 3"/>
-          <path d="M43,93 l5,6 10,-12" fill="none" stroke="#fff1de" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-          <text x="50" y="123" text-anchor="middle" font-family="Space Mono, monospace" font-size="7" font-weight="700" fill="#ff9a56">DOUGHNAUT</text>
-
-          <!-- original direction 3: cutout (passed over) -->
-          <path d="M50,140 l3,7 7,1 -5,5 1,7 -6,-4 -6,4 1,-7 -5,-5 7,-1 z" fill="none" stroke="#4a4460" stroke-width="1.6" opacity=".55"/>
-          <text x="50" y="168" text-anchor="middle" font-family="Space Mono, monospace" font-size="7" fill="#6a6288">CUTOUT</text>
-
-          <!-- arrow from the pick -->
-          <path d="M73,93 H108" stroke="#ff9a56" stroke-width="2" fill="none" marker-end="url(#lookbook-arrow-accent)"/>
-
-          <!-- fan to three plush riffs -->
-          <path d="M112,93 C130,93 130,40 165,37" stroke="#3c3163" stroke-width="1.5" fill="none"/>
-          <path d="M112,93 H165" stroke="#3c3163" stroke-width="1.5" fill="none"/>
-          <path d="M112,93 C130,93 130,146 165,149" stroke="#3c3163" stroke-width="1.5" fill="none"/>
-
-          <!-- node: stitch -->
-          <circle cx="182" cy="35" r="14" fill="#1f1836" stroke="#d9694f" stroke-width="2"/>
-          <path d="M176,40l10,-10" stroke="#f3e1c8" stroke-width="1.6" stroke-linecap="round"/>
-          <circle cx="187" cy="29" r="1.6" fill="#f3e1c8"/>
-          <text x="182" y="57" text-anchor="middle" font-family="Space Mono, monospace" font-size="7" font-weight="700" fill="#d9694f">STITCH</text>
-
-          <!-- node: vinyl -->
-          <circle cx="182" cy="93" r="14" fill="#1f1836" stroke="#ff8fc2" stroke-width="2"/>
-          <path d="M177,89c2,-3 7,-4 10,-2" stroke="#ffe6f3" stroke-width="1.6" fill="none" stroke-linecap="round"/>
-          <text x="182" y="115" text-anchor="middle" font-family="Space Mono, monospace" font-size="7" font-weight="700" fill="#ff8fc2">VINYL</text>
-
-          <!-- node: bean -->
-          <circle cx="182" cy="151" r="14" fill="#1f1836" stroke="#e8b94a" stroke-width="2"/>
-          <path d="M176,146l6,-6h8v8l-6,6z" fill="none" stroke="#f3e1c8" stroke-width="1.4" stroke-linejoin="round"/>
-          <text x="182" y="173" text-anchor="middle" font-family="Space Mono, monospace" font-size="7" font-weight="700" fill="#e8b94a">BEAN</text>
-
+          <!-- capsule 1 -->
+          <rect x="15" y="55" width="40" height="60" rx="20" fill="#4a4460" stroke="#6a6288" stroke-width="2"/>
+          <circle cx="35" cy="70" r="4" fill="#241c40"/>
+          <!-- arrow -->
+          <path d="M62,85 H92" stroke="#6a6288" stroke-width="2" fill="none" marker-end="url(#lookbook-arrow)"/>
+          <!-- capsule 2 -->
+          <rect x="130" y="55" width="40" height="60" rx="20" fill="#4a4460" stroke="#6a6288" stroke-width="2"/>
+          <circle cx="150" cy="70" r="4" fill="#241c40"/>
+          <!-- arrow -->
+          <path d="M177,85 H207" stroke="#ff9a56" stroke-width="2" fill="none" marker-end="url(#lookbook-arrow-accent)"/>
+          <!-- question mark blob -->
+          <circle cx="255" cy="85" r="32" fill="none" stroke="#ff9a56" stroke-width="2" stroke-dasharray="4 5"/>
+          <text x="255" y="94" text-anchor="middle" font-family="Baloo 2, sans-serif" font-size="30" font-weight="800" fill="#ff9a56">?</text>
           <defs>
+            <marker id="lookbook-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M0,0 L10,5 L0,10 Z" fill="#6a6288"/>
+            </marker>
             <marker id="lookbook-arrow-accent" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
               <path d="M0,0 L10,5 L0,10 Z" fill="#ff9a56"/>
             </marker>
           </defs>
         </svg>
-        <span class="cap">the pick, pushed three ways</span>
+        <span class="cap">the reskin nobody's picked yet</span>
       </div>
     </div>
   </header>
 
   <div class="section-intro">
-    <h2>Same silhouette, three finishes</h2>
-    <p>None of these change the body plan the creator already signed off on. What's still open is
-    materiality — what it's "made of" and how a factory would actually build it. Every riff below carries
-    the same three load-bearing traits, just executed in a different plush-toy vocabulary.</p>
-  </div>
-
-  <div class="dna-strip">
-    <div class="dna-item">
-      <span class="dna-icon">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2c-3 4-3 9 0 12M12 2c3 4 3 9 0 12"/><path d="M8 22c0-6 1-8 4-8s4 2 4 8"/></svg>
-      </span>
-      <span class="dna-text"><span class="dna-label">4 noodle-tentacle legs</span><span class="dna-sub">uneven lengths, non-negotiable</span></span>
-    </div>
-    <div class="dna-item">
-      <span class="dna-icon">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 12a6 6 0 1 1 6 6 4 4 0 1 1 4-4 2 2 0 1 1 2-2"/></svg>
-      </span>
-      <span class="dna-text"><span class="dna-label">Cinnamon-roll tail</span><span class="dna-sub">same spiral, every riff</span></span>
-    </div>
-    <div class="dna-item">
-      <span class="dna-icon">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="8" cy="10" r="3"/><circle cx="17" cy="8" r="2"/><circle cx="15" cy="17" r="1.6"/></svg>
-      </span>
-      <span class="dna-text"><span class="dna-label">Three mismatched eyes</span><span class="dna-sub">wrong sizes, wrong heights, on purpose</span></span>
-    </div>
+    <h2>Three directions, three different bets</h2>
+    <p>Each one commits to a different silhouette, a different production cost, and a different reason it should feel wholesome instead of weird-for-weird's-sake. None of them is the "safe" choice — that's rather the point of exploring this in parallel with engineering.</p>
   </div>
 
   <main class="directions">
 
-    <!-- ================= RIFF ONE ================= -->
+    <!-- ================= DIRECTION A ================= -->
     <article class="card">
-      <div class="art style-stitch">
-        <svg viewBox="0 0 380 380" role="img" aria-label="A fleece-and-felt plush space pony built from the Doughnaut body plan — noodle-tentacle legs, a cinnamon-roll tail and a lopsided head — with visible cross-stitched seams, a felt belly patch, and two mismatched button eyes.">
-          <g stroke="#f3e1c8" stroke-width="2.5" stroke-linecap="round" opacity=".55">
-            <path d="M48,62 l14,14 M62,62 l-14,14"/>
-            <path d="M330,168 l10,10 M340,168 l-10,10"/>
+      <div class="art style-a">
+        <svg viewBox="0 0 380 380" role="img" aria-label="A low-poly space pony made of flat-shaded angular facets, standing on three mismatched rocket-booster legs with flame thrusters, topped with a single glowing crystal antigravity horn.">
+          <!-- backdrop facets -->
+          <polygon points="0,380 100,250 0,150" fill="#201a48"/>
+          <polygon points="380,0 380,140 260,40" fill="#241d52"/>
+          <polygon points="380,380 380,270 300,380" fill="#1c1640"/>
+          <g fill="#6fe3c4" opacity=".55">
+            <rect x="40" y="45" width="6" height="6" transform="rotate(45 43 48)"/>
+            <rect x="330" y="200" width="5" height="5" transform="rotate(45 332 202)"/>
+            <rect x="60" y="180" width="4" height="4" transform="rotate(45 62 182)"/>
+            <rect x="300" y="60" width="5" height="5" transform="rotate(45 302 62)"/>
           </g>
 
-          <ellipse cx="192" cy="347" rx="118" ry="15" fill="#1c1006" opacity=".45"/>
+          <!-- ground shadow -->
+          <ellipse cx="192" cy="347" rx="112" ry="16" fill="#0b0818" opacity=".55"/>
 
-          <path d="M150,250 C140,275 165,285 150,310 C138,330 160,340 150,355" stroke="#c99361" stroke-width="20" fill="none" stroke-linecap="round"/>
-          <path d="M150,250 C140,275 165,285 150,310 C138,330 160,340 150,355" stroke="#f3e1c8" stroke-width="2" fill="none" stroke-linecap="round" stroke-dasharray="5 6" opacity=".8"/>
-          <path d="M185,255 C195,275 175,290 190,315 C200,335 178,345 188,358" stroke="#b8875a" stroke-width="18" fill="none" stroke-linecap="round"/>
-          <path d="M185,255 C195,275 175,290 190,315 C200,335 178,345 188,358" stroke="#f3e1c8" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-dasharray="5 6" opacity=".8"/>
-          <path d="M225,255 C215,278 240,292 222,318 C210,338 232,348 220,360" stroke="#c99361" stroke-width="22" fill="none" stroke-linecap="round"/>
-          <path d="M225,255 C215,278 240,292 222,318 C210,338 232,348 220,360" stroke="#f3e1c8" stroke-width="2" fill="none" stroke-linecap="round" stroke-dasharray="5 6" opacity=".8"/>
-          <path d="M255,250 C265,272 245,288 260,306 C270,324 250,332 258,346" stroke="#b8875a" stroke-width="16" fill="none" stroke-linecap="round"/>
-          <path d="M255,250 C265,272 245,288 260,306 C270,324 250,332 258,346" stroke="#f3e1c8" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-dasharray="5 6" opacity=".8"/>
+          <!-- rocket-boot legs + flames -->
+          <polygon points="132,225 162,225 157,313 133,313" fill="#4a3d80"/>
+          <polygon points="133,313 157,313 148,353 126,338" fill="#ff9a56"/>
+          <polygon points="135,320 152,320 145,343 130,332" fill="#ffd166"/>
 
-          <path d="M110,255 a24,24 0 1,1 48,0 a16,16 0 1,1 -32,0 a8,8 0 1,1 16,0" fill="none" stroke="#9fbf8f" stroke-width="9" stroke-linecap="round"/>
-          <path d="M110,255 a24,24 0 1,1 48,0 a16,16 0 1,1 -32,0 a8,8 0 1,1 16,0" fill="none" stroke="#f3e1c8" stroke-width="1.5" stroke-linecap="round" stroke-dasharray="4 5" opacity=".8"/>
+          <polygon points="186,232 217,226 227,330 196,336" fill="#42356f"/>
+          <polygon points="196,336 227,330 217,365 191,352" fill="#ff9a56"/>
+          <polygon points="198,342 218,338 210,360 195,350" fill="#ffd166"/>
 
-          <path d="M120,210 C105,165 130,105 195,100 C260,95 300,140 290,195 C300,245 260,280 195,278 C125,282 100,250 120,210 Z" fill="#d9a469"/>
-          <path d="M250,180 C280,200 285,240 250,265 C258,232 250,202 250,180 Z" fill="#b8663f" opacity=".35"/>
-          <path d="M150,220 C145,250 180,265 210,255 C240,248 245,220 225,205 C200,190 160,195 150,220 Z" fill="#f3e1c8" stroke="#c9503f" stroke-width="2" stroke-dasharray="5 4"/>
-          <path d="M120,210 C105,165 130,105 195,100 C260,95 300,140 290,195 C300,245 260,280 195,278 C125,282 100,250 120,210 Z" fill="none" stroke="#f3e1c8" stroke-width="1.5" stroke-dasharray="5 5" opacity=".7"/>
+          <polygon points="246,225 273,222 269,309 243,312" fill="#4a3d80"/>
+          <polygon points="243,312 269,309 259,345 238,332" fill="#ff9a56"/>
+          <polygon points="246,318 263,315 255,338 240,328" fill="#ffd166"/>
 
-          <g stroke="#c9503f" stroke-width="2.5" stroke-linecap="round">
-            <path d="M164,146 l8,8 M172,146 l-8,8"/>
-            <path d="M251,161 l7,7 M258,161 l-7,7"/>
-            <path d="M136,196 l6,6 M142,196 l-6,6"/>
-            <path d="M226,231 l7,7 M233,231 l-7,7"/>
-          </g>
+          <!-- tail facets -->
+          <polygon points="128,205 100,192 118,178" fill="#8879c9"/>
+          <polygon points="128,220 96,215 116,198" fill="#4a3d80"/>
 
-          <path d="M240,100 C225,70 260,45 295,55 C325,63 330,95 310,115 C295,130 255,125 240,100 Z" fill="#e3b17e"/>
-          <path d="M240,100 C225,70 260,45 295,55 C325,63 330,95 310,115 C295,130 255,125 240,100 Z" fill="none" stroke="#f3e1c8" stroke-width="1.5" stroke-dasharray="5 5" opacity=".7"/>
+          <!-- body -->
+          <polygon points="130,150 170,110 230,108 270,140 275,195 250,232 170,235 128,205" fill="#5b4b9e"/>
+          <polygon points="130,150 170,110 230,108 200,160" fill="#8879c9"/>
+          <polygon points="200,160 275,195 250,232 170,235 160,190" fill="#3f3372"/>
 
-          <path d="M255,55 C250,35 268,20 278,35 C285,48 270,60 255,55 Z" fill="#c9503f"/>
-          <path d="M255,55 C250,35 268,20 278,35 C285,48 270,60 255,55 Z" fill="none" stroke="#f3e1c8" stroke-width="1.5" stroke-dasharray="4 4"/>
-          <path d="M300,50 C310,30 335,35 330,55 C326,70 305,68 300,50 Z" fill="#f3e1c8"/>
-          <path d="M300,50 C310,30 335,35 330,55 C326,70 305,68 300,50 Z" fill="none" stroke="#c9503f" stroke-width="1.5" stroke-dasharray="4 4"/>
+          <!-- mane spikes -->
+          <polygon points="235,110 250,120 225,80" fill="#a89be0"/>
+          <polygon points="215,120 232,112 205,90" fill="#4a3d80"/>
+          <polygon points="196,130 212,120 186,96" fill="#a89be0"/>
+          <polygon points="177,140 192,128 167,106" fill="#4a3d80"/>
 
-          <path d="M245,60 C240,45 255,40 250,55 C247,63 258,58 253,48" stroke="#e79a8d" stroke-width="6" fill="none" stroke-linecap="round"/>
-          <path d="M272,42 C267,27 282,22 277,37 C274,45 285,40 280,30" stroke="#e79a8d" stroke-width="6" fill="none" stroke-linecap="round"/>
-          <line x1="277" y1="24" x2="274" y2="10" stroke="#e79a8d" stroke-width="4" stroke-linecap="round"/>
-          <circle cx="274" cy="9" r="4" fill="#f3e1c8" stroke="#c9503f" stroke-width="1.5"/>
+          <!-- head -->
+          <polygon points="255,95 300,75 325,105 315,145 275,150 260,125" fill="#7669c0"/>
+          <polygon points="255,95 300,75 325,105 290,110" fill="#9c8fe0"/>
+          <polygon points="290,110 315,145 275,150 265,120" fill="#453873"/>
 
-          <circle cx="270" cy="85" r="15" fill="#fbf3e6" stroke="#8a5a34" stroke-width="2"/>
-          <path d="M264,79 l12,12 M276,79 l-12,12" stroke="#3d2414" stroke-width="2.5" stroke-linecap="round"/>
-          <circle cx="303" cy="78" r="10" fill="#3d2414" stroke="#241608" stroke-width="1.5"/>
-          <circle cx="306" cy="75" r="2" fill="#fbf3e6"/>
-          <circle cx="292" cy="106" r="7" fill="#fbf3e6" stroke="#8a5a34" stroke-width="1.5"/>
-          <path d="M289,103 l6,6 M295,103 l-6,6" stroke="#3d2414" stroke-width="2"/>
+          <!-- ears -->
+          <polygon points="270,80 280,55 288,82" fill="#9c8fe0"/>
+          <polygon points="300,70 312,48 316,75" fill="#7669c0"/>
 
-          <path d="M270,112 Q283,122 296,110" stroke="#5c3821" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-dasharray="3 4"/>
+          <!-- antigrav horn -->
+          <polygon points="296,76 300,20 305,78" fill="#cdeeff"/>
+          <polygon points="298,76 300,32 302,77" fill="#eafcff"/>
+          <circle cx="300" cy="20" r="7" fill="#6fe3c4" opacity=".55"/>
+          <circle cx="300" cy="20" r="3" fill="#eafcff"/>
+
+          <!-- eyes -->
+          <polygon points="285,105 293,115 285,125 277,115" fill="#f3eefb"/>
+          <polygon points="283,111 289,115 283,120" fill="#241c40"/>
+          <polygon points="305,112 311,120 305,127 299,120" fill="#f3eefb"/>
+          <polygon points="304,117 309,120 304,124" fill="#241c40"/>
+
+          <!-- mouth -->
+          <polygon points="313,140 321,138 316,148" fill="#241c40"/>
         </svg>
       </div>
       <div class="body">
-        <span class="direction-tag">Riff one · classic plush</span>
-        <h3 class="direction-name">The <span class="accent-stitch">Stitchnaut</span></h3>
+        <span class="direction-tag">Direction one</span>
+        <h3 class="direction-name">Faceted <span class="accent-a">Frontier</span></h3>
         <span class="badge">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 19L17 7"/><circle cx="19" cy="5" r="2"/><path d="M7 17l2-2M10 14l2-2"/></svg>
-          plush build: fleece body, felt patches, cross-stitched seams
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v6M9 22l3-6 3 6"/><path d="M6 10l6-4 6 4-6 4z"/></svg>
+          featured mutation: 3 rocket-boot legs, antigrav horn
         </span>
         <p class="blurb">
-          Every thumbprint dimple from the original Doughnaut becomes a literal cross-stitch here — visible
-          thread, slightly uneven tension, the good kind of wonky. Fleece body, a felt belly patch and ears
-          in colors that don't quite match, mismatched button eyes sewn at asymmetric heights. <strong>This
-          direction looks hand-sewn because it's built from actual construction seams</strong>, not texture
-          painted over a clean shape — so the wholesome-absurd tone survives at any zoom level, screen or
-          shelf. It's also the safest of the three to actually manufacture: fleece-and-felt with simple-curve
-          seams is the default vocabulary of the plush industry, so a factory quote comes back fast, tooling
-          cost is close to zero, and a size run from keychain to huggable is just a pattern scale.
+          Flat-shaded, low-vertex geometry in the spirit of PS1-era 3D and vertex-lit Katamari-adjacent worlds —
+          chunky and jagged enough that it reads as goofy on sight, never sinister. Low-poly silhouettes already
+          look like they're vibrating at low frame rates, so <strong>the sine-wave wobble the controller adds
+          basically sells itself</strong> instead of fighting the model. It's also the cheapest of the three for a
+          small Godot team: simple meshes, a single flat/toon shader, and new breeding body-plans (swap a leg count,
+          re-facet a horn) are fast blockouts rather than full re-sculpts.
         </p>
         <div class="meter-row">
-          <span>Plush line viability</span>
-          <span class="pips"><span class="pip on"></span><span class="pip on"></span><span class="pip on"></span></span>
-          <span>high</span>
+          <span>Godot build effort</span>
+          <span class="pips"><span class="pip on"></span><span class="pip"></span><span class="pip"></span></span>
+          <span>low</span>
         </div>
       </div>
     </article>
 
-    <!-- ================= RIFF TWO ================= -->
+    <!-- ================= DIRECTION B ================= -->
     <article class="card reverse">
-      <div class="art style-vinyl">
-        <svg viewBox="0 0 380 380" role="img" aria-label="A designer-toy hybrid space pony on the same Doughnaut body plan — soft plush tentacle-leg body and cinnamon-roll tail in pastel fabric, topped with a glossy vinyl head with painted eyes and a stitched collar seam where the two materials meet.">
-          <g fill="#eaffdc" opacity=".6">
-            <path d="M55,66 l3,9 9,3 -9,3 -3,9 -3,-9 -9,-3 9,-3 z"/>
-            <path d="M333,172 l2,7 7,2 -7,2 -2,7 -2,-7 -7,-2 7,-2 z"/>
+      <div class="art style-b">
+        <svg viewBox="0 0 380 380" role="img" aria-label="A soft claymation-style space pony with a lopsided pinched body, four uneven noodle-like tentacle legs, a cinnamon-roll spiral tail, and three mismatched button eyes.">
+          <!-- floating clay stars -->
+          <path d="M55,70 l5,13 13,2 -10,9 3,13 -11,-7 -11,7 3,-13 -10,-9 13,-2 z" fill="#f3e1c8" opacity=".7"/>
+          <path d="M335,175 l4,10 10,1 -8,7 2,10 -8,-5 -8,5 2,-10 -8,-7 10,-1 z" fill="#f3e1c8" opacity=".55"/>
+
+          <!-- ground shadow -->
+          <ellipse cx="192" cy="347" rx="118" ry="15" fill="#241206" opacity=".4"/>
+
+          <!-- tentacle legs -->
+          <path d="M150,250 C140,275 165,285 150,310 C138,330 160,340 150,355" stroke="#b8663f" stroke-width="20" fill="none" stroke-linecap="round"/>
+          <path d="M185,255 C195,275 175,290 190,315 C200,335 178,345 188,358" stroke="#a8563a" stroke-width="18" fill="none" stroke-linecap="round"/>
+          <path d="M225,255 C215,278 240,292 222,318 C210,338 232,348 220,360" stroke="#b8663f" stroke-width="22" fill="none" stroke-linecap="round"/>
+          <path d="M255,250 C265,272 245,288 260,306 C270,324 250,332 258,346" stroke="#a8563a" stroke-width="16" fill="none" stroke-linecap="round"/>
+
+          <!-- tail: cinnamon-roll spiral -->
+          <path d="M110,255 a24,24 0 1,1 48,0 a16,16 0 1,1 -32,0 a8,8 0 1,1 16,0" fill="none" stroke="#9fbf8f" stroke-width="9" stroke-linecap="round"/>
+
+          <!-- body -->
+          <path d="M120,210 C105,165 130,105 195,100 C260,95 300,140 290,195 C300,245 260,280 195,278 C125,282 100,250 120,210 Z" fill="#d98a5f"/>
+          <path d="M250,180 C280,200 285,240 250,265 C258,232 250,202 250,180 Z" fill="#b8663f" opacity=".5"/>
+          <path d="M150,220 C145,250 180,265 210,255 C240,248 245,220 225,205 C200,190 160,195 150,220 Z" fill="#f3e1c8" opacity=".9"/>
+
+          <!-- thumbprint dimples -->
+          <g fill="#7a4a30" opacity=".28">
+            <ellipse cx="168" cy="150" rx="8" ry="5"/>
+            <ellipse cx="255" cy="165" rx="7" ry="5" transform="rotate(20 255 165)"/>
+            <ellipse cx="140" cy="200" rx="6" ry="4" transform="rotate(-10 140 200)"/>
+            <ellipse cx="230" cy="235" rx="7" ry="4" transform="rotate(15 230 235)"/>
           </g>
 
-          <ellipse cx="192" cy="347" rx="118" ry="15" fill="#04131f" opacity=".5"/>
+          <!-- head -->
+          <path d="M240,100 C225,70 260,45 295,55 C325,63 330,95 310,115 C295,130 255,125 240,100 Z" fill="#e39a6b"/>
 
-          <path d="M150,250 C140,275 165,285 150,310 C138,330 160,340 150,355" stroke="#a9d8c8" stroke-width="20" fill="none" stroke-linecap="round"/>
-          <path d="M185,255 C195,275 175,290 190,315 C200,335 178,345 188,358" stroke="#93c9b8" stroke-width="18" fill="none" stroke-linecap="round"/>
-          <path d="M225,255 C215,278 240,292 222,318 C210,338 232,348 220,360" stroke="#a9d8c8" stroke-width="22" fill="none" stroke-linecap="round"/>
-          <path d="M255,250 C265,272 245,288 260,306 C270,324 250,332 258,346" stroke="#93c9b8" stroke-width="16" fill="none" stroke-linecap="round"/>
+          <!-- ears -->
+          <path d="M255,55 C250,35 268,20 278,35 C285,48 270,60 255,55 Z" fill="#d98a5f"/>
+          <path d="M300,50 C310,30 335,35 330,55 C326,70 305,68 300,50 Z" fill="#d98a5f"/>
 
-          <path d="M110,255 a24,24 0 1,1 48,0 a16,16 0 1,1 -32,0 a8,8 0 1,1 16,0" fill="none" stroke="#bfe8da" stroke-width="9" stroke-linecap="round"/>
-          <circle cx="134" cy="255" r="7" fill="#ff8fc2"/>
-          <path d="M130,251 C133,248 138,249 139,253" stroke="#ffe1f0" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+          <!-- mane coils + antenna -->
+          <path d="M245,60 C240,45 255,40 250,55 C247,63 258,58 253,48" stroke="#e79a8d" stroke-width="7" fill="none" stroke-linecap="round"/>
+          <path d="M272,42 C267,27 282,22 277,37 C274,45 285,40 280,30" stroke="#e79a8d" stroke-width="7" fill="none" stroke-linecap="round"/>
+          <line x1="277" y1="24" x2="274" y2="10" stroke="#e79a8d" stroke-width="4" stroke-linecap="round"/>
+          <path d="M274,10 l3,7 7,1 -5,5 1,7 -6,-4 -6,4 1,-7 -5,-5 7,-1 z" fill="#6fe3c4"/>
 
-          <path d="M120,210 C105,165 130,105 195,100 C260,95 300,140 290,195 C300,245 260,280 195,278 C125,282 100,250 120,210 Z" fill="#bfe8da"/>
-          <path d="M250,180 C280,200 285,240 250,265 C258,232 250,202 250,180 Z" fill="#93c9b8" opacity=".5"/>
-          <path d="M150,220 C145,250 180,265 210,255 C240,248 245,220 225,205 C200,190 160,195 150,220 Z" fill="#eaf9f2" opacity=".9"/>
+          <!-- eyes (three, mismatched) -->
+          <circle cx="270" cy="85" r="16" fill="#fbf3e6"/>
+          <circle cx="274" cy="88" r="7" fill="#2a1c12"/>
+          <circle cx="276" cy="85" r="2" fill="#fbf3e6"/>
 
-          <path d="M228,148 Q252,168 278,152" fill="none" stroke="#5c4a86" stroke-width="2.5" stroke-dasharray="4 4" opacity=".85"/>
+          <circle cx="303" cy="78" r="11" fill="#fbf3e6"/>
+          <circle cx="306" cy="80" r="5" fill="#2a1c12"/>
 
-          <path d="M240,100 C225,70 260,45 295,55 C325,63 330,95 310,115 C295,130 255,125 240,100 Z" fill="#ff8fc2" stroke="#3a1030" stroke-width="3"/>
-          <path d="M252,68 C260,58 278,54 288,60 C276,60 262,66 256,76 Z" fill="#ffe6f3" opacity=".65"/>
+          <circle cx="292" cy="106" r="7" fill="#fbf3e6"/>
+          <circle cx="293" cy="107" r="3" fill="#2a1c12"/>
 
-          <path d="M255,55 C250,35 268,20 278,35 C285,48 270,60 255,55 Z" fill="#ff8fc2" stroke="#3a1030" stroke-width="2.5"/>
-          <path d="M300,50 C310,30 335,35 330,55 C326,70 305,68 300,50 Z" fill="#ffb0d9" stroke="#3a1030" stroke-width="2.5"/>
-
-          <line x1="277" y1="24" x2="274" y2="10" stroke="#3a1030" stroke-width="3" stroke-linecap="round"/>
-          <circle cx="274" cy="8" r="4" fill="#6fe3c4" stroke="#3a1030" stroke-width="1.5"/>
-
-          <ellipse cx="270" cy="85" rx="13" ry="15" fill="#241333"/>
-          <circle cx="274" cy="80" r="3" fill="#fff"/>
-          <ellipse cx="303" cy="78" rx="9" ry="10" fill="#241333"/>
-          <circle cx="306" cy="75" r="2.2" fill="#fff"/>
-          <circle cx="292" cy="106" r="6" fill="#241333"/>
-          <circle cx="294" cy="104" r="1.6" fill="#fff"/>
-
-          <path d="M270,112 Q283,122 296,110" stroke="#3a1030" stroke-width="3" fill="none" stroke-linecap="round"/>
+          <!-- mouth -->
+          <path d="M270,112 Q283,122 296,110" stroke="#5c3821" stroke-width="3" fill="none" stroke-linecap="round"/>
         </svg>
       </div>
       <div class="body">
-        <span class="direction-tag">Riff two · designer hybrid</span>
-        <h3 class="direction-name">The <span class="accent-vinyl">Vinylnaut</span></h3>
+        <span class="direction-tag">Direction two</span>
+        <h3 class="direction-name">The <span class="accent-b">Doughnaut</span></h3>
         <span class="badge">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="8"/><path d="M8 9c1.5-2 4.5-3 7-1"/></svg>
-          plush build: glossy vinyl head, soft plush body, stitched collar seam
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="3"/><circle cx="7" cy="14" r="1.5"/><circle cx="17" cy="14" r="1.5"/></svg>
+          featured mutation: 4 noodle-tentacle legs, third eye
         </span>
         <p class="blurb">
-          Takes the Doughnaut's lopsided head and casts it in glossy vinyl — flat saturated color, one
-          painted highlight, that unmistakable blind-box sheen — then bolts it onto a soft plush
-          tentacle-leg body with a visible stitched collar where the two materials meet, like the toy admits
-          it's two different manufacturing processes wearing a trenchcoat. <strong>The seam is the joke:
-          nobody hides that a hard head is sewn onto a soft body</strong>, which keeps it in janky-on-purpose
-          territory instead of sliding into generic collectible-toy slickness. It's the direction with the
-          real merch upside — vinyl heads are exactly what drives blind-box resale culture and per-unit
-          margin — but also the direction with the real merch cost: injection tooling for the head needs
-          volume to pay off, so it only pencils out past a first plush-only run.
+          Hand-pinched clay with visible thumbprints, lopsided proportions and soft matte shading, in the spirit of
+          Aardman and Laika stop-motion. This is the direction where <strong>"janky by design" stops needing an
+          excuse</strong> — a wobbly, imperfect surface is exactly what real clay looks like, so the procedural
+          bob reads as material, not as a bug. It's also the hardest sell for a small team: faking clay convincingly
+          in real-time (matte sub-surface look, dimple texture, asymmetric silhouettes) needs real shader work, and
+          every new bred body-plan is closer to a fresh sculpt than a simple mesh swap.
         </p>
         <div class="meter-row">
-          <span>Plush line viability</span>
-          <span class="pips"><span class="pip on"></span><span class="pip on"></span><span class="pip"></span></span>
-          <span>medium</span>
+          <span>Godot build effort</span>
+          <span class="pips"><span class="pip on"></span><span class="pip on"></span><span class="pip on"></span></span>
+          <span>high</span>
         </div>
       </div>
     </article>
 
-    <!-- ================= RIFF THREE ================= -->
+    <!-- ================= DIRECTION C ================= -->
     <article class="card">
-      <div class="art style-bean">
-        <svg viewBox="0 0 380 380" role="img" aria-label="A lumpy, underfilled beanbag plush space pony on the same Doughnaut body plan — patchwork fabric panels in mismatched colors, noodle-tentacle legs, a cinnamon-roll tail, and a numbered fabric hangtag looped through one ear.">
-          <defs>
-            <clipPath id="beanBodyClip">
-              <path d="M120,210 C105,165 130,105 195,100 C260,95 300,140 290,195 C300,245 260,280 195,278 C125,282 100,250 120,210 Z"/>
-            </clipPath>
-          </defs>
+      <div class="art style-c">
+        <svg viewBox="0 0 380 380" role="img" aria-label="A flat vector paper-cutout style space pony with a thick black outline, bold candy colors, scalloped paper wings on its back, and a stacked paper flame for a rocket tail.">
+          <!-- backdrop paper moon -->
+          <circle cx="300" cy="90" r="55" fill="#2c2158"/>
+          <circle cx="306" cy="84" r="49" fill="#3a2d72"/>
+          <path d="M55,55 l4,10 10,1 -8,7 2,10 -8,-5 -8,5 2,-10 -8,-7 10,-1 z" fill="#fff1de" opacity=".8"/>
 
-          <g opacity=".6">
-            <rect x="48" y="60" width="12" height="12" fill="#e8b94a" transform="rotate(18 54 66)"/>
-            <rect x="330" y="168" width="10" height="10" fill="#9fbf8f" transform="rotate(-15 335 173)"/>
-          </g>
+          <!-- ground shadow -->
+          <ellipse cx="192" cy="347" rx="115" ry="14" fill="#0d1f1f" opacity=".5"/>
 
-          <ellipse cx="192" cy="347" rx="118" ry="15" fill="#1a1508" opacity=".45"/>
+          <!-- rocket tail: stacked paper flame -->
+          <polygon points="70,205 30,225 68,232 34,255 72,252 48,280 90,258" fill="#d6437f"/>
+          <polygon points="78,212 46,228 76,233 50,252 80,250 62,272 96,254" fill="#ffd166"/>
+          <polygon points="86,220 62,232 84,236 66,252 88,251 74,268 100,254" fill="#fff1de"/>
 
-          <path d="M150,250 C140,275 165,285 150,310 C138,330 160,340 150,355" stroke="#e8b94a" stroke-width="20" fill="none" stroke-linecap="round"/>
-          <ellipse cx="152" cy="288" rx="12" ry="8" fill="#f3d488" opacity=".5"/>
-          <path d="M185,255 C195,275 175,290 190,315 C200,335 178,345 188,358" stroke="#c9503f" stroke-width="18" fill="none" stroke-linecap="round"/>
-          <ellipse cx="186" cy="295" rx="10" ry="7" fill="#e0806a" opacity=".5"/>
-          <path d="M225,255 C215,278 240,292 222,318 C210,338 232,348 220,360" stroke="#9fbf8f" stroke-width="22" fill="none" stroke-linecap="round"/>
-          <ellipse cx="228" cy="298" rx="12" ry="8" fill="#c3dfb4" opacity=".5"/>
-          <path d="M255,250 C265,272 245,288 260,306 C270,324 250,332 258,346" stroke="#7c8fc9" stroke-width="16" fill="none" stroke-linecap="round"/>
-          <ellipse cx="260" cy="282" rx="9" ry="6" fill="#aab6e0" opacity=".5"/>
+          <!-- legs -->
+          <rect x="128" y="255" width="26" height="80" rx="13" fill="#6fe3c4" stroke="#201430" stroke-width="6"/>
+          <rect x="168" y="258" width="26" height="80" rx="13" fill="#5bd0b2" stroke="#201430" stroke-width="6"/>
+          <rect x="212" y="258" width="26" height="80" rx="13" fill="#6fe3c4" stroke="#201430" stroke-width="6"/>
+          <rect x="252" y="255" width="26" height="80" rx="13" fill="#5bd0b2" stroke="#201430" stroke-width="6"/>
+          <ellipse cx="141" cy="337" rx="15" ry="7" fill="#201430"/>
+          <ellipse cx="181" cy="340" rx="15" ry="7" fill="#201430"/>
+          <ellipse cx="225" cy="340" rx="15" ry="7" fill="#201430"/>
+          <ellipse cx="265" cy="337" rx="15" ry="7" fill="#201430"/>
 
-          <path d="M110,255 a24,24 0 1,1 48,0 a16,16 0 1,1 -32,0 a8,8 0 1,1 16,0" fill="none" stroke="#c9503f" stroke-width="9" stroke-linecap="round"/>
-          <path d="M110,255 a24,24 0 1,1 48,0 a16,16 0 1,1 -32,0 a8,8 0 1,1 16,0" fill="none" stroke="#f3e1c8" stroke-width="1.5" stroke-dasharray="3 5" opacity=".8"/>
+          <!-- wings (layered paper) -->
+          <path d="M120,150 C70,132 48,92 62,62 C82,92 100,84 104,112 C122,94 132,64 152,58 C144,92 152,120 132,140 C124,148 120,150 120,150 Z" fill="#f4b94a" opacity=".9"/>
+          <path d="M112,150 C62,130 42,88 56,58 C76,90 96,80 100,110 C118,90 130,60 150,53 C140,88 150,118 128,138 C120,148 112,150 112,150 Z" fill="#ffd166" stroke="#201430" stroke-width="6" stroke-linejoin="round"/>
 
-          <path d="M120,210 C105,165 130,105 195,100 C260,95 300,140 290,195 C300,245 260,280 195,278 C125,282 100,250 120,210 Z" fill="#efe2c4"/>
-          <g clip-path="url(#beanBodyClip)">
-            <rect x="100" y="95" width="100" height="90" fill="#e8b94a"/>
-            <rect x="200" y="95" width="100" height="70" fill="#9fbf8f"/>
-            <rect x="100" y="185" width="90" height="100" fill="#c9503f" opacity=".85"/>
-            <rect x="190" y="200" width="110" height="90" fill="#7c8fc9" opacity=".85"/>
-            <path d="M200,95 V290" stroke="#efe2c4" stroke-width="3" stroke-dasharray="5 5" opacity=".8"/>
-            <path d="M100,185 H300" stroke="#efe2c4" stroke-width="3" stroke-dasharray="5 5" opacity=".8"/>
-            <ellipse cx="160" cy="230" rx="22" ry="12" fill="#000" opacity=".12"/>
-            <ellipse cx="245" cy="150" rx="18" ry="10" fill="#000" opacity=".1"/>
-          </g>
-          <path d="M120,210 C105,165 130,105 195,100 C260,95 300,140 290,195 C300,245 260,280 195,278 C125,282 100,250 120,210 Z" fill="none" stroke="#efe2c4" stroke-width="2" stroke-dasharray="5 5" opacity=".8"/>
+          <!-- body (shadow + main, paper stack) -->
+          <rect x="100" y="148" width="170" height="140" rx="45" fill="#d6437f"/>
+          <rect x="92" y="140" width="170" height="140" rx="45" fill="#ff6fa5" stroke="#201430" stroke-width="7"/>
 
-          <path d="M240,100 C225,70 260,45 295,55 C325,63 330,95 310,115 C295,130 255,125 240,100 Z" fill="#efe2c4"/>
-          <path d="M240,100 C225,70 260,45 295,55 C325,63 330,95 310,115 C295,130 255,125 240,100 Z" fill="none" stroke="#c9503f" stroke-width="1.5" stroke-dasharray="4 4" opacity=".7"/>
+          <!-- mane triangles -->
+          <polygon points="250,120 268,80 280,124" fill="#ffd166" stroke="#201430" stroke-width="5" stroke-linejoin="round"/>
+          <polygon points="272,116 288,78 298,120" fill="#6fe3c4" stroke="#201430" stroke-width="5" stroke-linejoin="round"/>
 
-          <path d="M255,55 C250,35 268,20 278,35 C285,48 270,60 255,55 Z" fill="#9fbf8f"/>
-          <path d="M300,50 C310,30 335,35 330,55 C326,70 305,68 300,50 Z" fill="#e8b94a"/>
+          <!-- head (shadow + main) -->
+          <circle cx="298" cy="118" r="54" fill="#d6437f"/>
+          <circle cx="290" cy="110" r="54" fill="#fff1de" stroke="#201430" stroke-width="7"/>
 
-          <path d="M318,58 C324,68 322,78 316,84" stroke="#efe2c4" stroke-width="1.5" fill="none" stroke-linecap="round"/>
-          <g transform="translate(300,86) rotate(8)">
-            <path d="M0,10 L14,0 L34,0 L34,26 L14,26 Z" fill="#f3e1c8" stroke="#3d2414" stroke-width="1.5"/>
-            <circle cx="9" cy="13" r="2.5" fill="none" stroke="#3d2414" stroke-width="1.3"/>
-            <line x1="19" y1="7" x2="29" y2="7" stroke="#3d2414" stroke-width="1.3"/>
-            <line x1="19" y1="13" x2="29" y2="13" stroke="#3d2414" stroke-width="1.3"/>
-            <line x1="19" y1="19" x2="26" y2="19" stroke="#3d2414" stroke-width="1.3"/>
-          </g>
+          <!-- blush -->
+          <circle cx="258" cy="128" r="9" fill="#ff9fc4" opacity=".8"/>
+          <circle cx="322" cy="128" r="9" fill="#ff9fc4" opacity=".8"/>
 
-          <circle cx="270" cy="85" r="14" fill="#efe2c4" stroke="#9fbf8f" stroke-width="3"/>
-          <circle cx="273" cy="88" r="5" fill="#241333"/>
-          <circle cx="303" cy="78" r="9" fill="#241333"/>
-          <circle cx="306" cy="75" r="2" fill="#fbf3e6"/>
-          <circle cx="292" cy="106" r="6" fill="#efe2c4" stroke="#c9503f" stroke-width="2"/>
-          <circle cx="293" cy="107" r="2.5" fill="#241333"/>
+          <!-- eyes -->
+          <circle cx="272" cy="100" r="20" fill="#fff" stroke="#201430" stroke-width="4"/>
+          <circle cx="279" cy="104" r="9" fill="#201430"/>
+          <circle cx="315" cy="96" r="16" fill="#fff" stroke="#201430" stroke-width="4"/>
+          <circle cx="321" cy="99" r="7" fill="#201430"/>
 
-          <path d="M270,112 Q283,122 296,110" stroke="#5c3821" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-dasharray="3 4"/>
+          <!-- mouth -->
+          <path d="M280,130 Q292,140 306,128" stroke="#201430" stroke-width="6" fill="none" stroke-linecap="round"/>
         </svg>
       </div>
       <div class="body">
-        <span class="direction-tag">Riff three · patchwork beanbag</span>
-        <h3 class="direction-name">The <span class="accent-bean">Beannaut</span></h3>
+        <span class="direction-tag">Direction three</span>
+        <h3 class="direction-name">Cutout <span class="accent-c">Cosmos</span></h3>
         <span class="badge">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11L11 3h8a2 2 0 0 1 2 2v8l-8 8a2 2 0 0 1-3 0l-8-8a2 2 0 0 1 0-2z"/><circle cx="15.5" cy="8.5" r="1.5"/></svg>
-          plush build: underfilled beanbag, patchwork panels, numbered hangtag
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2c-4 3-4 9 0 12 4-3 4-9 0-12z"/><path d="M3 16c3-1 6 0 9 2 3-2 6-3 9-2"/></svg>
+          featured mutation: paper wings, stacked flame rocket-tail
         </span>
         <p class="blurb">
-          Deliberately underfilled — the body sags and folds where a fully-stuffed plush would hold its
-          shape — and pieced from mismatched fabric scraps, a mustard patch here, a rust patch there, each
-          seam a different thread color like it was sewn from whatever was in the scrap bin that day. A
-          little cardstock hangtag swings from one ear on a loop of string, numbered and signed like a
-          trading card. <strong>Underfilled-and-patchworked is the most collectible-coded silhouette of the
-          three</strong> — it's the Beanie-Baby school of "flawed on purpose, therefore special," and it
-          courts the shelf-of-numbered-figures audience directly. It's also the cheapest of the three to
-          produce: no new tooling, patchwork can use fabric offcuts from the other two lines, and the hangtag
-          is where a numbered-edition conceit — a nice echo of the game's own breeding rarity — lives for
-          free.
+          Bold flat color, thick ink outlines and offset "paper layer" drop-shadows, closer to collage/cutout
+          animation than 3D at all. Candy-bright and blunt-shaped, it lands wholesome-absurd through sheer
+          cheerfulness and <strong>reads instantly at a glance during a frantic four-way race</strong> — exactly
+          when a busier style would turn to noise. It's the cheapest and fastest of the three to produce and
+          reskin per breeding trait (flat meshes or billboards, no complex shading), but flat shapes can look
+          pasted-on in a physics-driven 3D track unless the team commits to billboarding or careful faceting to
+          keep it feeling embedded in the world rather than stickered onto it.
         </p>
         <div class="meter-row">
-          <span>Plush line viability</span>
-          <span class="pips"><span class="pip on"></span><span class="pip on"></span><span class="pip on"></span></span>
-          <span>high</span>
+          <span>Godot build effort</span>
+          <span class="pips"><span class="pip on"></span><span class="pip on"></span><span class="pip"></span></span>
+          <span>low–medium</span>
         </div>
       </div>
     </article>
@@ -583,16 +512,15 @@
   <footer>
     <div class="foot-grid">
       <div>
-        <h3>None of these are the final plush.</h3>
-        <p>The creator's reaction locked in the Doughnaut's body plan — the noodle legs, the cinnamon tail,
-        the mismatched eyes aren't up for debate anymore. What's still open is execution: stitched-and-felt,
-        vinyl-hybrid, or patchwork-beanbag, and picking one (or licensing all three as a numbered series) is
-        a call for whoever owns the merch line, not the visual-design track alone.</p>
+        <h3>None of these are final.</h3>
+        <p>Mixing is fair game — a Faceted-Frontier body with Doughnaut-style asymmetric proportions, or
+        Cutout Cosmos color logic over a low-poly mesh, are all reasonable next sketches. The goal here is a
+        direction to reskin M1's gray-box capsule toward at M5, not a locked art bible.</p>
       </div>
       <div class="meta">
         <div>SpacePonies — Visual Design Track</div>
-        <div>Direction 2 ("The Doughnaut") — deep dive</div>
-        <div>For the merch / collectible-line decision</div>
+        <div>Proposed against M1 (vertical slice, gray-box)</div>
+        <div>For the M5 reskin decision</div>
       </div>
     </div>
   </footer>
