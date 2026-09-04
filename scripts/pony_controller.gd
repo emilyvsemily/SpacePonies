@@ -87,9 +87,17 @@ func _get_input_dir(delta: float) -> Vector2:
 			Input.get_action_strength("move_back") - Input.get_action_strength("move_forward")
 		)
 	# Wandering AI: always pushes forward, with a slow noisy steer so bots
-	# don't drive dead straight. Drift into the guardrail bumpers is fine.
+	# don't drive dead straight. A proportional pull back toward straight-
+	# ahead (rotation.y == 0, the track's forward axis) keeps that wander —
+	# plus the passive drift every pony gets — from accumulating into a
+	# runaway spin that stalls the bot's forward progress; wall bumps are
+	# still fine, they just can't out-spin their own steering forever.
 	_ai_seed += delta
-	var steer := sin(_ai_seed * 0.6) * 0.5 + sin(_ai_seed * 1.7 + 2.0) * 0.25
+	var wander := sin(_ai_seed * 0.6) * 0.35 + sin(_ai_seed * 1.7 + 2.0) * 0.15
+	# rotate_y() below applies -input.x * turn_speed, so this needs a
+	# POSITIVE coefficient on rotation.y to net out as restoring feedback.
+	var heading_correction := rotation.y * 0.6
+	var steer := wander + heading_correction
 	return Vector2(clamp(steer, -1.0, 1.0), -1.0)
 
 func _wants_ability(delta: float) -> bool:
