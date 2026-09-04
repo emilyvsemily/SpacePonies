@@ -31,22 +31,19 @@ finish_banner_path = NodePath("FinishBanner")
 
 [node name="Pony" parent="." instance=ExtResource("2_pony")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.6, 1.5, 95)
-is_ai = false
+is_local_player = true
 pony_name = "You"
 
 [node name="Bot1" parent="." instance=ExtResource("2_pony")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.2, 1.5, 95)
-is_ai = true
 pony_name = "Bot 1"
 
 [node name="Bot2" parent="." instance=ExtResource("2_pony")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.2, 1.5, 95)
-is_ai = true
 pony_name = "Bot 2"
 
 [node name="Bot3" parent="." instance=ExtResource("2_pony")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.6, 1.5, 95)
-is_ai = true
 pony_name = "Bot 3"
 
 [node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]

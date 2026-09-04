@@ -5,10 +5,12 @@ extends CharacterBody3D
 ## the wobble/jank layer is a procedural bob applied to the visual mesh only,
 ## so it works regardless of a pony's leg count/body plan (see docs/design.md).
 ##
-## Also drives a simple wandering AI mode (is_ai) so M2's bot ponies can
-## reuse the exact same movement/ability code as the player.
+## Also drives a simple wandering AI mode so bots (and, over the network,
+## host-simulated bots) reuse the exact same movement/ability code as the
+## player. In multiplayer, only the peer with authority over a given pony
+## simulates it at all — everyone else just sees the synced transform.
 
-@export var is_ai: bool = false
+@export var is_local_player: bool = false
 @export var pony_name: String = "Pony"
 
 @export var acceleration: float = 7.0
@@ -32,6 +34,7 @@ extends CharacterBody3D
 
 @onready var visual: Node3D = $Visual
 @onready var camera: Camera3D = $SpringArm3D/Camera3D
+@onready var sync: MultiplayerSynchronizer = $MultiplayerSynchronizer
 
 var food_collected: int = 0
 
@@ -46,12 +49,20 @@ var _drift_time: float = 0.0
 var _drift_seed: float = 0.0
 
 func _ready() -> void:
-	camera.current = not is_ai
+	camera.current = is_local_player
 	_ai_seed = randf() * 1000.0
 	_ai_ability_timer = randf_range(1.0, 3.0)
 	_drift_seed = randf() * 1000.0
 
+	var config := SceneReplicationConfig.new()
+	config.add_property(NodePath(".:position"))
+	config.add_property(NodePath(".:rotation"))
+	sync.replication_config = config
+
 func _physics_process(delta: float) -> void:
+	if not is_multiplayer_authority():
+		return
+
 	var input_dir := _get_input_dir(delta)
 
 	_drift_time += delta
@@ -71,7 +82,7 @@ func _physics_process(delta: float) -> void:
 		_use_ability(forward)
 
 	if is_on_floor():
-		if not is_ai and Input.is_action_just_pressed("jump"):
+		if is_local_player and Input.is_action_just_pressed("jump"):
 			velocity.y = jump_velocity
 	else:
 		velocity.y -= gravity * delta
@@ -81,7 +92,7 @@ func _physics_process(delta: float) -> void:
 	_update_wacky_wobble(delta, Vector3(velocity.x, 0.0, velocity.z).length())
 
 func _get_input_dir(delta: float) -> Vector2:
-	if not is_ai:
+	if is_local_player:
 		return Vector2(
 			Input.get_action_strength("move_right") - Input.get_action_strength("move_left"),
 			Input.get_action_strength("move_back") - Input.get_action_strength("move_forward")
@@ -101,7 +112,7 @@ func _get_input_dir(delta: float) -> Vector2:
 	return Vector2(clamp(steer, -1.0, 1.0), -1.0)
 
 func _wants_ability(delta: float) -> bool:
-	if not is_ai:
+	if is_local_player:
 		return Input.is_action_just_pressed("ability")
 	_ai_ability_timer -= delta
 	if _ai_ability_timer <= 0.0:
@@ -113,6 +124,12 @@ func _use_ability(forward: Vector3) -> void:
 	velocity += forward * ability_dash_speed
 	_ability_cooldown_timer = ability_cooldown
 	_ability_flash = 1.0
+
+## Called by RaceManager after reassigning multiplayer authority for this
+## slot, since is_local_player is normally only read once in _ready().
+func set_as_local_player(value: bool) -> void:
+	is_local_player = value
+	camera.current = value
 
 func collect_food() -> void:
 	food_collected += 1

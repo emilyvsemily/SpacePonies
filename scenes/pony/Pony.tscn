@@ -38,3 +38,5 @@ transform = Transform3D(1, 0, 0, 0, 0.965926, 0.258819, 0, -0.258819, 0.965926, 
 spring_length = 9.5
 
 [node name="Camera3D" type="Camera3D" parent="SpringArm3D"]
+
+[node name="MultiplayerSynchronizer" type="MultiplayerSynchronizer" parent="."]

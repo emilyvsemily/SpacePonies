@@ -11,8 +11,12 @@ config_version=5
 [application]
 
 config/name="SpacePonies"
-run/main_scene="res://scenes/Main.tscn"
+run/main_scene="res://scenes/ui/NetworkLobby.tscn"
 config/features=PackedStringArray("4.7", "Forward Plus")
+
+[autoload]
+
+NetworkManager="*res://scripts/network_manager.gd"
 
 [input]
 
