@@ -14,7 +14,7 @@ A pony that's evolved/mutated to survive in space. "Pony" is a loose starting po
 
 ## Core Loop
 
-Race → earn currency/unlocks → breed ponies in your stable to chase better stats or rarer/weirder trait combos → race again with your new pony.
+Race (collecting food pickups along the track) → return to the stable and feed your ponies to keep them race-ready → breed ponies to chase better stats or rarer/weirder trait combos → race again with your new pony.
 
 ## Visual Design Track (parallel workstream)
 
@@ -44,6 +44,15 @@ Breeding two ponies punnett-squares the discrete genes for the foal, blends+vari
 
 This framework is a starting point; the actual trait list is content to expand over time.
 
+## Food & Feeding (Stable Upkeep)
+
+Feeding ties the race loop directly to the stable loop: **food is collected on the track** (a pickup item, alongside other bonus power-ups) and then has to physically make it back to the stable to matter.
+
+- **Collection:** food pickups spawn on the race track and get gathered mid-race, same as any other bonus item.
+- **Feeding is a zero-gravity throwing mechanic**, not walking a pony up to a bowl. The stable is in space — no gravity — so the player throws food at their ponies, and thrown food (and the ponies going for it) drifts and tumbles rather than arcing under gravity. This reuses the same physics-driven/procedural jank philosophy as race movement (see Animation Approach above) rather than needing a separate animation system.
+- **Upkeep scales with stable size:** more bred ponies means more food needed to keep everyone fed, so breeding grows your options but also your feeding burden — the intended economic tension.
+- Exact under-feeding consequences and upkeep numbers are intentionally left open — a starting mechanic, not a balanced economy yet.
+
 ## Technical Architecture
 
 - **Engine/language:** Godot 4.x (4.7), GDScript to start.
@@ -54,7 +63,7 @@ This framework is a starting point; the actual trait list is content to expand o
 
 1. **M0 — Project scaffold** *(done)*
 2. **M1 — Vertical slice, gray-box (current target):** one placeholder pony, one dumb test track, physics-driven janky movement, single-player, playable start-to-finish lap.
-3. **M2 — Core race loop:** 4 ponies, full race with placements, one wacky ability wired in.
+3. **M2 — Core race loop:** 4 ponies, full race with placements, one wacky ability wired in, food pickups on the track (collection only — feeding comes in M4).
 4. **M3 — Online multiplayer:** up to 4 real players racing together online.
-5. **M4 — Breeding & Stable:** Mendelian trait system, stable UI, pony generation from two parents.
+5. **M4 — Breeding & Stable:** Mendelian trait system, stable UI, pony generation from two parents, and the zero-G food-throwing feeding mechanic with upkeep scaling by stable size.
 6. **M5 — Content & polish:** reskin with chosen art style, expand trait library, more tracks, animation/jank polish.
