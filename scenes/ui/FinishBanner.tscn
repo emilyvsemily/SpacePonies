@@ -1,0 +1,28 @@
+[gd_scene load_steps=2 format=3 uid="uid://c0banner000001"]
+
+[ext_resource type="Script" path="res://scripts/finish_banner.gd" id="1_banner"]
+
+[node name="FinishBanner" type="CanvasLayer"]
+script = ExtResource("1_banner")
+
+[node name="CenterContainer" type="CenterContainer" parent="."]
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 0.0
+offset_top = 0.0
+offset_right = 0.0
+offset_bottom = 0.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Label" type="Label" parent="CenterContainer"]
+theme_override_colors/font_color = Color(1.0, 0.85, 0.2, 1.0)
+theme_override_colors/font_outline_color = Color(0.08, 0.04, 0.16, 1.0)
+theme_override_constants/outline_size = 10
+theme_override_font_sizes/font_size = 96
+text = "FINISHED!"
+horizontal_alignment = 1
+vertical_alignment = 1

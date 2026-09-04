@@ -1,8 +1,9 @@
-[gd_scene load_steps=7 format=3 uid="uid://c0main0000001"]
+[gd_scene load_steps=8 format=3 uid="uid://c0main0000001"]
 
 [ext_resource type="PackedScene" uid="uid://c0track000001" path="res://scenes/tracks/TestTrack.tscn" id="1_track"]
 [ext_resource type="PackedScene" uid="uid://c0pony0000001" path="res://scenes/pony/Pony.tscn" id="2_pony"]
 [ext_resource type="Script" path="res://scripts/race_manager.gd" id="3_race"]
+[ext_resource type="PackedScene" uid="uid://c0banner000001" path="res://scenes/ui/FinishBanner.tscn" id="4_banner"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_1"]
 sky_top_color = Color(0.05, 0.02, 0.15, 1.0)
@@ -22,26 +23,29 @@ ambient_light_energy = 0.6
 [node name="Main" type="Node3D"]
 script = ExtResource("3_race")
 finish_trigger_path = NodePath("TestTrack/FinishGate/FinishTrigger")
+finish_banner_path = NodePath("FinishBanner")
 
 [node name="TestTrack" parent="." instance=ExtResource("1_track")]
 
+[node name="FinishBanner" parent="." instance=ExtResource("4_banner")]
+
 [node name="Pony" parent="." instance=ExtResource("2_pony")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3, 1, 95)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.6, 1.5, 95)
 is_ai = false
 pony_name = "You"
 
 [node name="Bot1" parent="." instance=ExtResource("2_pony")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1, 1, 95)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.2, 1.5, 95)
 is_ai = true
 pony_name = "Bot 1"
 
 [node name="Bot2" parent="." instance=ExtResource("2_pony")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 1, 95)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.2, 1.5, 95)
 is_ai = true
 pony_name = "Bot 2"
 
 [node name="Bot3" parent="." instance=ExtResource("2_pony")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3, 1, 95)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.6, 1.5, 95)
 is_ai = true
 pony_name = "Bot 3"
 

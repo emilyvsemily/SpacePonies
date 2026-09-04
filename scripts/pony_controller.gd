@@ -11,11 +11,17 @@ extends CharacterBody3D
 @export var is_ai: bool = false
 @export var pony_name: String = "Pony"
 
-@export var acceleration: float = 18.0
+@export var acceleration: float = 7.0
 @export var max_speed: float = 9.0
-@export var turn_speed: float = 4.0
+@export var turn_speed: float = 2.4
 @export var jump_velocity: float = 6.0
 @export var gravity: float = 20.0
+
+## Passive steering drift — a "bad shopping cart wheel" pull that's always
+## live, on top of whatever the driver (player or AI) is asking for. This is
+## the main thing that makes the controls feel unwieldy rather than just slow.
+@export var drift_strength: float = 0.35
+@export var drift_freq: float = 0.5
 
 @export var wobble_speed: float = 14.0
 @export var wobble_amount: float = 0.12
@@ -36,16 +42,21 @@ var _ability_flash: float = 0.0
 var _ai_seed: float = 0.0
 var _ai_ability_timer: float = 0.0
 
+var _drift_time: float = 0.0
+var _drift_seed: float = 0.0
+
 func _ready() -> void:
 	camera.current = not is_ai
 	_ai_seed = randf() * 1000.0
 	_ai_ability_timer = randf_range(1.0, 3.0)
+	_drift_seed = randf() * 1000.0
 
 func _physics_process(delta: float) -> void:
 	var input_dir := _get_input_dir(delta)
 
-	if input_dir.length() > 0.0:
-		rotate_y(-input_dir.x * turn_speed * delta)
+	_drift_time += delta
+	var passive_drift := sin(_drift_time * drift_freq + _drift_seed) * drift_strength
+	rotate_y((-input_dir.x * turn_speed + passive_drift) * delta)
 
 	var forward := -global_transform.basis.z
 	var target_speed := -input_dir.y * max_speed
