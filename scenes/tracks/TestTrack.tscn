@@ -1,0 +1,57 @@
+[gd_scene load_steps=6 format=3 uid="uid://c0track000001"]
+
+[sub_resource type="BoxMesh" id="BoxMesh_floor"]
+size = Vector3(10, 1, 60)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_floor"]
+size = Vector3(10, 1, 60)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_floor"]
+albedo_color = Color(0.25, 0.28, 0.35, 1.0)
+
+[sub_resource type="BoxMesh" id="BoxMesh_bump"]
+size = Vector3(2, 0.4, 2)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_bump"]
+size = Vector3(2, 0.4, 2)
+
+[node name="TestTrack" type="Node3D"]
+
+[node name="Floor" type="StaticBody3D" parent="."]
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="Floor"]
+mesh = SubResource("BoxMesh_floor")
+surface_material_override/0 = SubResource("StandardMaterial3D_floor")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Floor"]
+shape = SubResource("BoxShape3D_floor")
+
+[node name="Bump1" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2, 0.7, -10)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="Bump1"]
+mesh = SubResource("BoxMesh_bump")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Bump1"]
+shape = SubResource("BoxShape3D_bump")
+
+[node name="Bump2" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.5, 0.7, -22)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="Bump2"]
+mesh = SubResource("BoxMesh_bump")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Bump2"]
+shape = SubResource("BoxShape3D_bump")
+
+[node name="Bump3" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.5, 0.7, -34)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="Bump3"]
+mesh = SubResource("BoxMesh_bump")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Bump3"]
+shape = SubResource("BoxShape3D_bump")
+
+[node name="FinishLine" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, -28)
