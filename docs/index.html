@@ -194,6 +194,60 @@
   .riff-card .blurb{font-size:.92rem; max-width:none;}
   .riff-card .badge{font-size:.68rem;}
 
+  /* ---------- Live rig (Faceted Frontier in motion) ---------- */
+  .engine-wrap{padding-bottom:2.5rem;}
+  .engine-card{
+    display:grid;
+    grid-template-columns:minmax(0,1.3fr) minmax(280px,1fr);
+    gap:clamp(1.5rem,3vw,2.5rem);
+    align-items:stretch;
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-radius:26px;
+    padding:clamp(1.5rem,3vw,2.25rem);
+    box-shadow:var(--shadow);
+  }
+  .engine-viewport{
+    position:relative;
+    border-radius:18px;
+    overflow:hidden;
+    aspect-ratio:4/3;
+    background:linear-gradient(155deg,#1c1640 0%,#241a4c 55%,#150f30 100%);
+  }
+  .engine-viewport canvas{width:100%; height:100%; display:block; touch-action:none; cursor:grab;}
+  .engine-viewport canvas:active{cursor:grabbing;}
+  .engine-hint{
+    position:absolute; left:.9rem; bottom:.8rem;
+    font-family:'Space Mono',monospace; font-size:.66rem; letter-spacing:.08em; text-transform:uppercase;
+    color:var(--text-dim);
+    background:rgba(20,15,34,.55);
+    padding:.35rem .65rem;
+    border-radius:100px;
+    pointer-events:none;
+  }
+  .engine-fallback{
+    position:absolute; inset:0; display:flex; align-items:center; justify-content:center; text-align:center;
+    padding:1.5rem; color:var(--text-faint); font-family:'Space Mono',monospace; font-size:.75rem; line-height:1.6;
+  }
+  .engine-panel{display:flex; flex-direction:column; gap:.9rem;}
+  .engine-controls{display:flex; flex-wrap:wrap; gap:.6rem; margin-top:.2rem;}
+  .engine-btn{
+    font-family:'Space Mono',monospace; font-size:.72rem; letter-spacing:.05em; text-transform:uppercase;
+    padding:.65rem 1rem;
+    border-radius:100px;
+    border:1px solid var(--line);
+    background:var(--surface-2);
+    color:var(--text-dim);
+    cursor:pointer;
+    transition:border-color .15s,color .15s,background .15s;
+  }
+  .engine-btn:hover{color:var(--text); border-color:var(--accent);}
+  .engine-btn:focus-visible{outline:2px solid var(--accent); outline-offset:2px;}
+  .engine-btn.active{background:var(--accent-soft); border-color:rgba(255,154,86,.5); color:var(--accent);}
+  .engine-caption{
+    font-family:'Space Mono',monospace; font-size:.72rem; color:var(--text-faint); line-height:1.6; margin-top:.1rem;
+  }
+
   /* ---------- Footer ---------- */
   footer{
     border-top:1px solid var(--line-soft);
@@ -221,6 +275,7 @@
     .art{max-width:420px; margin:0 auto; aspect-ratio:4/3;}
     .riffs{grid-template-columns:1fr;}
     .riff-card .art{max-width:420px; margin:0 auto; aspect-ratio:4/3;}
+    .engine-card{grid-template-columns:1fr;}
     footer .foot-grid{flex-direction:column;}
     footer .meta{text-align:left;}
   }
@@ -914,6 +969,43 @@
 
   </section>
 
+  <div class="section-intro">
+    <h2>Faceted Frontier, <span class="hl">rigged and running</span></h2>
+    <p>A mockup can't show what the procedural wobble in <code>pony_controller.gd</code> actually feels like at
+    runtime, so here's a live WebGL build of Direction One instead of another still frame — flat-shaded primitives
+    standing in for real low-poly meshes, animated the same way the game does it: no hand-keyframes, just sine
+    waves layered onto a bone hierarchy, scaled by speed. Drag the viewport to orbit, and toggle between the two
+    locomotion states it actually needs on a race track versus a zero-gravity stable.</p>
+  </div>
+
+  <section class="engine-wrap">
+    <div class="engine-card">
+      <div class="engine-viewport" id="pony-viewport">
+        <canvas id="pony-canvas" aria-label="Interactive 3D preview of the Faceted Frontier space pony, animating a walk cycle or a zero-gravity barrel roll depending on the selected control. Drag to orbit the camera."></canvas>
+        <div class="engine-hint" id="pony-hint">drag to orbit</div>
+      </div>
+      <div class="engine-panel">
+        <span class="direction-tag">Live WebGL prototype</span>
+        <h3 class="direction-name">Same rig, <span class="accent-a">running live</span></h3>
+        <span class="badge">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v6M9 22l3-6 3 6"/><path d="M6 10l6-4 6 4-6 4z"/></svg>
+          root → body → {head, tail, leg × 3} — procedural, not skeletal
+        </span>
+        <p class="blurb">
+          Built as a hierarchy of independent parts, exactly like the game's own approach: real transforms driven
+          by sine waves and layered onto a base pose, not a single hand-authored animation clip — which is also
+          why it doesn't care that the three rocket-boot legs are mismatched lengths. It's still the cheapest
+          direction on this page to build; this is just that same cheapness proven out in motion.
+        </p>
+        <div class="engine-controls">
+          <button type="button" class="engine-btn active" id="btn-walk">Walk Cycle</button>
+          <button type="button" class="engine-btn" id="btn-roll">Zero-G Barrel Roll</button>
+        </div>
+        <p class="engine-caption" id="pony-caption">Three mismatched rocket-boots, each running its own clock — the whole rig looks like it shouldn't hold together, and locomotes anyway.</p>
+      </div>
+    </div>
+  </section>
+
   <footer>
     <div class="foot-grid">
       <div>
@@ -931,4 +1023,374 @@
   </footer>
 </div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function(){
+  var viewport = document.getElementById('pony-viewport');
+  var canvas = document.getElementById('pony-canvas');
+  var btnWalk = document.getElementById('btn-walk');
+  var btnRoll = document.getElementById('btn-roll');
+  var caption = document.getElementById('pony-caption');
+  var hint = document.getElementById('pony-hint');
+
+  if (!window.THREE || !canvas) { return; }
+
+  var CAPTIONS = {
+    walk: "Three mismatched rocket-boots, each running its own clock — the whole rig looks like it shouldn't hold together, and locomotes anyway.",
+    roll: "No gravity, no up-or-down — the body spins a full 360° around its own nose-to-tail axis while legs, tail and mane flail loose, like a ragdoll tumbling in freefall."
+  };
+
+  try {
+
+    // ---------- renderer / scene / camera ----------
+    var renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+
+    var scene = new THREE.Scene();
+    var camera = new THREE.PerspectiveCamera(38, 1, 0.1, 100);
+    var camTarget = new THREE.Vector3(0, 1.05, 0);
+    var camTheta = 0.55, camPhi = 1.18, camRadius = 5.4;
+
+    function resize(){
+      var w = viewport.clientWidth, h = viewport.clientHeight;
+      if (w < 2 || h < 2) return;
+      renderer.setSize(w, h, false);
+      camera.aspect = w / h;
+      camera.updateProjectionMatrix();
+    }
+    resize();
+    window.addEventListener('resize', resize);
+    if (window.ResizeObserver) { new ResizeObserver(resize).observe(viewport); }
+
+    function updateCamera(){
+      camPhi = Math.max(0.35, Math.min(Math.PI - 0.35, camPhi));
+      camera.position.set(
+        camTarget.x + camRadius * Math.sin(camPhi) * Math.sin(camTheta),
+        camTarget.y + camRadius * Math.cos(camPhi),
+        camTarget.z + camRadius * Math.sin(camPhi) * Math.cos(camTheta)
+      );
+      camera.lookAt(camTarget);
+    }
+    updateCamera();
+
+    // ---------- lights ----------
+    scene.add(new THREE.AmbientLight(0x4a4470, 0.75));
+    var key = new THREE.DirectionalLight(0xfff1de, 1.0);
+    key.position.set(3, 5, 4);
+    scene.add(key);
+    var rim = new THREE.DirectionalLight(0x6fe3c4, 0.45);
+    rim.position.set(-4, 2, -3);
+    scene.add(rim);
+    var fillWarm = new THREE.DirectionalLight(0xff9a56, 0.25);
+    fillWarm.position.set(2, -2, -4);
+    scene.add(fillWarm);
+
+    // ---------- background starfield ----------
+    (function stars(){
+      var n = 140, pos = new Float32Array(n * 3);
+      for (var i = 0; i < n; i++){
+        var r = 9 + Math.random() * 6;
+        var a = Math.random() * Math.PI * 2;
+        var b = (Math.random() - 0.5) * Math.PI * 0.6 + 0.3;
+        pos[i*3] = Math.cos(a) * Math.cos(b) * r;
+        pos[i*3+1] = 1 + Math.sin(b) * r * 0.6;
+        pos[i*3+2] = Math.sin(a) * Math.cos(b) * r - 2;
+      }
+      var g = new THREE.BufferGeometry();
+      g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+      var m = new THREE.PointsMaterial({ color: 0xd8cfff, size: 0.045, transparent: true, opacity: 0.55, sizeAttenuation: true });
+      scene.add(new THREE.Points(g, m));
+    })();
+
+    // ---------- materials ----------
+    function mat(hex, extra){
+      var o = Object.assign({ color: hex, flatShading: true, roughness: 0.65, metalness: 0.08 }, extra || {});
+      return new THREE.MeshStandardMaterial(o);
+    }
+    var M = {
+      bodyMain: mat(0x5b4b9e), bodyLight: mat(0x8879c9), bodyDark: mat(0x3f3372),
+      headMain: mat(0x7669c0), headLight: mat(0x9c8fe0), headDark: mat(0x453873),
+      maneLight: mat(0xa89be0), maneDark: mat(0x4a3d80),
+      legLight: mat(0x4a3d80), legDark: mat(0x42356f),
+      flameOrange: mat(0xff9a56, { emissive: 0xff9a56, emissiveIntensity: 0.5, roughness: 0.4 }),
+      flameYellow: mat(0xffd166, { emissive: 0xffd166, emissiveIntensity: 0.6, roughness: 0.4 }),
+      hornCrystal: mat(0xcdeeff, { emissive: 0x6fe3c4, emissiveIntensity: 0.5, roughness: 0.25, metalness: 0.1 }),
+      hornTip: mat(0xeafcff, { emissive: 0xeafcff, emissiveIntensity: 0.8, roughness: 0.2 }),
+      eyeWhite: mat(0xf3eefb, { roughness: 0.5 }),
+      eyePupil: mat(0x241c40, { roughness: 0.6 })
+    };
+
+    // ---------- rig: rig -> {torso, headGroup, tail, leg x3} ----------
+    var rig = new THREE.Group();
+    rig.position.y = 1.32;
+    scene.add(rig);
+
+    // torso (body)
+    var torso = new THREE.Mesh(new THREE.IcosahedronGeometry(0.82, 0), M.bodyMain);
+    torso.scale.set(1.28, 0.82, 1.05);
+    rig.add(torso);
+    var torsoLight = new THREE.Mesh(new THREE.IcosahedronGeometry(0.42, 0), M.bodyLight);
+    torsoLight.position.set(0.42, 0.32, 0.42);
+    torsoLight.scale.set(1.1, 0.7, 0.7);
+    rig.add(torsoLight);
+    var torsoDark = new THREE.Mesh(new THREE.IcosahedronGeometry(0.46, 0), M.bodyDark);
+    torsoDark.position.set(-0.3, -0.28, -0.32);
+    torsoDark.scale.set(1, 0.7, 0.75);
+    rig.add(torsoDark);
+
+    // head group
+    var headGroup = new THREE.Group();
+    headGroup.position.set(0, 0.58, 0.92);
+    rig.add(headGroup);
+
+    var headMesh = new THREE.Mesh(new THREE.IcosahedronGeometry(0.4, 0), M.headMain);
+    headGroup.add(headMesh);
+    var headLight = new THREE.Mesh(new THREE.IcosahedronGeometry(0.2, 0), M.headLight);
+    headLight.position.set(0.18, 0.14, 0.2);
+    headGroup.add(headLight);
+    var headDark = new THREE.Mesh(new THREE.IcosahedronGeometry(0.2, 0), M.headDark);
+    headDark.position.set(-0.15, -0.1, -0.16);
+    headGroup.add(headDark);
+
+    // ears
+    [[-0.16, 0.34, 0.06, M.headLight], [0.02, 0.36, 0.08, M.headMain]].forEach(function(e){
+      var ear = new THREE.Mesh(new THREE.ConeGeometry(0.09, 0.26, 4), e[3]);
+      ear.position.set(e[0], e[1], e[2]);
+      ear.rotation.z = e[0] < 0 ? 0.35 : -0.2;
+      headGroup.add(ear);
+    });
+
+    // antigrav horn
+    var hornGroup = new THREE.Group();
+    hornGroup.position.set(0.02, 0.42, 0.14);
+    hornGroup.rotation.x = -0.25;
+    headGroup.add(hornGroup);
+    var horn = new THREE.Mesh(new THREE.ConeGeometry(0.05, 0.5, 5), M.hornCrystal);
+    horn.position.y = 0.25;
+    hornGroup.add(horn);
+    var hornTip = new THREE.Mesh(new THREE.ConeGeometry(0.028, 0.2, 5), M.hornTip);
+    hornTip.position.y = 0.42;
+    hornGroup.add(hornTip);
+    var hornGlow = new THREE.Mesh(new THREE.IcosahedronGeometry(0.075, 0), new THREE.MeshBasicMaterial({ color: 0x6fe3c4, transparent: true, opacity: 0.55 }));
+    hornGlow.position.y = 0.52;
+    hornGroup.add(hornGlow);
+    var hornLight = new THREE.PointLight(0x6fe3c4, 0.8, 2.2);
+    hornLight.position.y = 0.52;
+    hornGroup.add(hornLight);
+
+    // eyes
+    [[-0.16, 0.03, 0.32], [0.14, 0.06, 0.33]].forEach(function(p){
+      var e = new THREE.Group();
+      e.position.set(p[0], p[1], p[2]);
+      var white = new THREE.Mesh(new THREE.IcosahedronGeometry(0.068, 0), M.eyeWhite);
+      e.add(white);
+      var pupil = new THREE.Mesh(new THREE.IcosahedronGeometry(0.034, 0), M.eyePupil);
+      pupil.position.z = 0.05;
+      e.add(pupil);
+      headGroup.add(e);
+    });
+
+    // mane (spikes riding the neck, wags with the head)
+    var maneSpecs = [
+      [-0.05, 0.32, -0.12, 0.14, 0.34, M.maneLight],
+      [-0.16, 0.28, -0.28, 0.13, 0.3, M.maneDark],
+      [-0.28, 0.22, -0.42, 0.12, 0.26, M.maneLight],
+      [-0.4, 0.14, -0.55, 0.1, 0.22, M.maneDark]
+    ];
+    maneSpecs.forEach(function(s){
+      var spike = new THREE.Mesh(new THREE.ConeGeometry(s[3], s[4], 4), s[5]);
+      spike.position.set(s[0], s[1], s[2]);
+      spike.rotation.x = -0.3;
+      spike.rotation.z = 0.25;
+      headGroup.add(spike);
+    });
+
+    // tail
+    var tail = new THREE.Group();
+    tail.position.set(-0.05, 0.15, -0.95);
+    rig.add(tail);
+    [[0, 0, 0, 0.16, M.bodyLight], [-0.14, -0.06, -0.16, 0.13, M.legLight], [0.1, -0.1, -0.22, 0.1, M.bodyDark]].forEach(function(s){
+      var t = new THREE.Mesh(new THREE.ConeGeometry(s[3], s[3] * 2.2, 4), s[4]);
+      t.position.set(s[0], s[1], s[2]);
+      t.rotation.x = Math.PI * 0.42;
+      tail.add(t);
+    });
+
+    // legs: mismatched rocket-boots
+    var legSpecs = [
+      { x: -0.5, z: 0.3, len: 0.92, mat: M.legLight, freq: 3.4, amp: 0.5, phase: 0.0 },
+      { x: 0.12, z: -0.42, len: 1.28, mat: M.legDark, freq: 2.7, amp: 0.42, phase: 1.8 },
+      { x: 0.58, z: 0.26, len: 0.8, mat: M.legLight, freq: 4.1, amp: 0.62, phase: 3.3 }
+    ];
+    var legs = legSpecs.map(function(spec){
+      var hip = new THREE.Group();
+      hip.position.set(spec.x, -0.18, spec.z);
+      rig.add(hip);
+
+      var upper = new THREE.Mesh(new THREE.CylinderGeometry(spec.len * 0.11, spec.len * 0.14, spec.len, 5), spec.mat);
+      upper.position.y = -spec.len / 2;
+      hip.add(upper);
+
+      var flameGroup = new THREE.Group();
+      flameGroup.position.y = -spec.len;
+      hip.add(flameGroup);
+      var flameOuter = new THREE.Mesh(new THREE.ConeGeometry(0.13, 0.34, 5), M.flameOrange);
+      flameOuter.rotation.x = Math.PI;
+      flameOuter.position.y = -0.15;
+      flameGroup.add(flameOuter);
+      var flameInner = new THREE.Mesh(new THREE.ConeGeometry(0.075, 0.2, 5), M.flameYellow);
+      flameInner.rotation.x = Math.PI;
+      flameInner.position.y = -0.08;
+      flameGroup.add(flameInner);
+
+      return { group: hip, flameOuter: flameOuter, flameInner: flameInner, freq: spec.freq, amp: spec.amp, phase: spec.phase };
+    });
+
+    // ---------- horn trail (barrel-roll only) ----------
+    var TRAIL_N = 22;
+    var trailPos = new Float32Array(TRAIL_N * 3);
+    var trailGeo = new THREE.BufferGeometry();
+    trailGeo.setAttribute('position', new THREE.BufferAttribute(trailPos, 3));
+    var trailMat = new THREE.PointsMaterial({
+      color: 0x6fe3c4, size: 0.075, transparent: true, opacity: 0.65,
+      blending: THREE.AdditiveBlending, depthWrite: false, sizeAttenuation: true
+    });
+    var trail = new THREE.Points(trailGeo, trailMat);
+    trail.visible = false;
+    scene.add(trail);
+    var trailPrimed = false;
+    var hornWorld = new THREE.Vector3();
+
+    function updateTrail(){
+      hornGlow.getWorldPosition(hornWorld);
+      if (!trailPrimed){
+        for (var i = 0; i < TRAIL_N; i++){
+          trailPos[i*3] = hornWorld.x; trailPos[i*3+1] = hornWorld.y; trailPos[i*3+2] = hornWorld.z;
+        }
+        trailPrimed = true;
+      } else {
+        for (var j = TRAIL_N - 1; j > 0; j--){
+          trailPos[j*3] = trailPos[(j-1)*3];
+          trailPos[j*3+1] = trailPos[(j-1)*3+1];
+          trailPos[j*3+2] = trailPos[(j-1)*3+2];
+        }
+        trailPos[0] = hornWorld.x; trailPos[1] = hornWorld.y; trailPos[2] = hornWorld.z;
+      }
+      trailGeo.attributes.position.needsUpdate = true;
+    }
+
+    // ---------- animation ----------
+    var mode = 'walk';
+    var clock = new THREE.Clock();
+    var bodyBaseY = 0;
+
+    function animateWalk(t){
+      rig.position.y = bodyBaseY + 1.32 + Math.abs(Math.sin(t * 4.1)) * 0.09;
+      rig.rotation.z = Math.sin(t * 2.3) * 0.1;
+      rig.rotation.x = Math.cos(t * 1.15 + 0.4) * 0.05;
+      rig.rotation.y = Math.sin(t * 0.5) * 0.06;
+
+      headGroup.rotation.z = Math.sin(t * 3.0 + 0.8) * 0.16 + Math.sin(t * 0.7) * 0.06;
+      headGroup.rotation.x = Math.sin(t * 1.6) * 0.05;
+      hornGroup.rotation.z = Math.sin(t * 5.2) * 0.18;
+
+      legs.forEach(function(leg, i){
+        leg.group.rotation.x = Math.sin(t * leg.freq + leg.phase) * leg.amp;
+        leg.group.rotation.z = Math.sin(t * leg.freq * 0.5 + leg.phase) * 0.09;
+        var flick = 0.8 + Math.max(0, Math.sin(t * leg.freq + leg.phase)) * 0.55 + Math.sin(t * 19 + i * 5) * 0.12;
+        leg.flameOuter.scale.y = Math.max(0.35, flick);
+        leg.flameInner.scale.y = Math.max(0.3, flick * 0.85 + 0.15);
+      });
+
+      tail.rotation.x = Math.sin(t * 2.6) * 0.25;
+      tail.rotation.z = Math.sin(t * 1.3 + 1) * 0.16;
+    }
+
+    var rollSpeed = (Math.PI * 2) / 2.1;
+    function animateRoll(t, dt){
+      rig.rotation.z += dt * rollSpeed;
+      rig.rotation.x = Math.sin(t * 5.5) * 0.06;
+      rig.position.y = bodyBaseY + 1.32;
+      rig.position.x = Math.sin(t * 0.6) * 0.12;
+      rig.position.z = Math.cos(t * 0.5) * 0.08;
+
+      headGroup.rotation.z = Math.sin(t * 4.2 + 1) * 0.4;
+      headGroup.rotation.x = Math.sin(t * 3.3) * 0.32;
+      headGroup.rotation.y = Math.cos(t * 3.7) * 0.28;
+
+      legs.forEach(function(leg, i){
+        leg.group.rotation.x = Math.sin(t * (6 + i * 1.3) + i * 2) * 1.15;
+        leg.group.rotation.z = Math.cos(t * (5 + i * 0.7) + i) * 0.95;
+        leg.group.rotation.y = Math.sin(t * (4 + i) + i * 3) * 0.55;
+        leg.flameOuter.scale.y = Math.max(0.4, 0.9 + Math.sin(t * 10 + i) * 0.25);
+        leg.flameInner.scale.y = Math.max(0.4, 0.9 + Math.sin(t * 13 + i) * 0.25);
+      });
+
+      tail.rotation.x = Math.sin(t * 7 + 2) * 0.6;
+      tail.rotation.z = Math.cos(t * 5.5) * 0.55;
+      tail.rotation.y = Math.sin(t * 4.5) * 0.4;
+
+      updateTrail();
+    }
+
+    function resetPose(){
+      rig.rotation.set(0, 0, 0);
+      rig.position.set(0, bodyBaseY + 1.32, 0);
+      trailPrimed = false;
+    }
+
+    function tick(){
+      requestAnimationFrame(tick);
+      var dt = Math.min(clock.getDelta(), 0.05);
+      var t = clock.getElapsedTime();
+      if (mode === 'walk'){ animateWalk(t); trail.visible = false; }
+      else { animateRoll(t, dt); trail.visible = true; }
+      renderer.render(scene, camera);
+    }
+    resetPose();
+    tick();
+
+    // ---------- controls: buttons ----------
+    function setMode(next){
+      if (mode === next) return;
+      mode = next;
+      btnWalk.classList.toggle('active', next === 'walk');
+      btnRoll.classList.toggle('active', next === 'roll');
+      caption.textContent = CAPTIONS[next];
+      if (next === 'walk') resetPose();
+    }
+    btnWalk.addEventListener('click', function(){ setMode('walk'); });
+    btnRoll.addEventListener('click', function(){ setMode('roll'); });
+
+    // ---------- controls: manual drag-orbit ----------
+    var dragging = false, lastX = 0, lastY = 0;
+    function pointerDown(x, y){ dragging = true; lastX = x; lastY = y; if (hint) hint.style.opacity = '0'; }
+    function pointerMove(x, y){
+      if (!dragging) return;
+      camTheta -= (x - lastX) * 0.008;
+      camPhi -= (y - lastY) * 0.008;
+      lastX = x; lastY = y;
+      updateCamera();
+    }
+    function pointerUp(){ dragging = false; }
+
+    canvas.addEventListener('pointerdown', function(e){ canvas.setPointerCapture(e.pointerId); pointerDown(e.clientX, e.clientY); });
+    canvas.addEventListener('pointermove', function(e){ pointerMove(e.clientX, e.clientY); });
+    canvas.addEventListener('pointerup', pointerUp);
+    canvas.addEventListener('pointerleave', pointerUp);
+    canvas.addEventListener('wheel', function(e){
+      e.preventDefault();
+      camRadius = Math.max(3.2, Math.min(9, camRadius + e.deltaY * 0.003));
+      updateCamera();
+    }, { passive: false });
+
+  } catch (err){
+    var fallback = document.createElement('div');
+    fallback.className = 'engine-fallback';
+    fallback.textContent = 'Live 3D preview couldn\'t start in this browser. Try a recent Chrome, Firefox, Safari or Edge with WebGL enabled.';
+    viewport.appendChild(fallback);
+    if (window.console) console.error('Faceted Frontier live rig failed to init:', err);
+  }
+})();
+</script>
 </body></html>
