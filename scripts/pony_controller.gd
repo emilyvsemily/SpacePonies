@@ -4,6 +4,12 @@ extends CharacterBody3D
 ## Locomotion is physics-driven (velocity + gravity via move_and_slide);
 ## the wobble/jank layer is a procedural bob applied to the visual mesh only,
 ## so it works regardless of a pony's leg count/body plan (see docs/design.md).
+##
+## Also drives a simple wandering AI mode (is_ai) so M2's bot ponies can
+## reuse the exact same movement/ability code as the player.
+
+@export var is_ai: bool = false
+@export var pony_name: String = "Pony"
 
 @export var acceleration: float = 18.0
 @export var max_speed: float = 9.0
@@ -15,15 +21,28 @@ extends CharacterBody3D
 @export var wobble_amount: float = 0.12
 @export var bob_amount: float = 0.08
 
+@export var ability_dash_speed: float = 14.0
+@export var ability_cooldown: float = 2.5
+
 @onready var visual: Node3D = $Visual
+@onready var camera: Camera3D = $SpringArm3D/Camera3D
+
+var food_collected: int = 0
 
 var _wobble_time: float = 0.0
+var _ability_cooldown_timer: float = 0.0
+var _ability_flash: float = 0.0
+
+var _ai_seed: float = 0.0
+var _ai_ability_timer: float = 0.0
+
+func _ready() -> void:
+	camera.current = not is_ai
+	_ai_seed = randf() * 1000.0
+	_ai_ability_timer = randf_range(1.0, 3.0)
 
 func _physics_process(delta: float) -> void:
-	var input_dir := Vector2(
-		Input.get_action_strength("move_right") - Input.get_action_strength("move_left"),
-		Input.get_action_strength("move_back") - Input.get_action_strength("move_forward")
-	)
+	var input_dir := _get_input_dir(delta)
 
 	if input_dir.length() > 0.0:
 		rotate_y(-input_dir.x * turn_speed * delta)
@@ -36,21 +55,57 @@ func _physics_process(delta: float) -> void:
 	velocity.x = horizontal_velocity.x
 	velocity.z = horizontal_velocity.z
 
+	_ability_cooldown_timer = max(0.0, _ability_cooldown_timer - delta)
+	if _wants_ability(delta) and _ability_cooldown_timer <= 0.0:
+		_use_ability(forward)
+
 	if is_on_floor():
-		if Input.is_action_just_pressed("jump"):
+		if not is_ai and Input.is_action_just_pressed("jump"):
 			velocity.y = jump_velocity
 	else:
 		velocity.y -= gravity * delta
 
 	move_and_slide()
 
-	_update_wacky_wobble(delta, horizontal_velocity.length())
+	_update_wacky_wobble(delta, Vector3(velocity.x, 0.0, velocity.z).length())
+
+func _get_input_dir(delta: float) -> Vector2:
+	if not is_ai:
+		return Vector2(
+			Input.get_action_strength("move_right") - Input.get_action_strength("move_left"),
+			Input.get_action_strength("move_back") - Input.get_action_strength("move_forward")
+		)
+	# Wandering AI: always pushes forward, with a slow noisy steer so bots
+	# don't drive dead straight. Drift into the guardrail bumpers is fine.
+	_ai_seed += delta
+	var steer := sin(_ai_seed * 0.6) * 0.5 + sin(_ai_seed * 1.7 + 2.0) * 0.25
+	return Vector2(clamp(steer, -1.0, 1.0), -1.0)
+
+func _wants_ability(delta: float) -> bool:
+	if not is_ai:
+		return Input.is_action_just_pressed("ability")
+	_ai_ability_timer -= delta
+	if _ai_ability_timer <= 0.0:
+		_ai_ability_timer = randf_range(1.5, 4.0)
+		return true
+	return false
+
+func _use_ability(forward: Vector3) -> void:
+	velocity += forward * ability_dash_speed
+	_ability_cooldown_timer = ability_cooldown
+	_ability_flash = 1.0
+
+func collect_food() -> void:
+	food_collected += 1
+	print("%s collected food (total: %d)" % [pony_name, food_collected])
 
 func _update_wacky_wobble(delta: float, speed: float) -> void:
 	if visual == null:
 		return
 	var speed_ratio: float = clamp(speed / max_speed, 0.0, 1.0)
-	_wobble_time += delta * wobble_speed * (0.3 + speed_ratio)
-	visual.rotation.z = sin(_wobble_time) * wobble_amount * speed_ratio
-	visual.rotation.x = cos(_wobble_time * 0.5) * wobble_amount * 0.5 * speed_ratio
-	visual.position.y = abs(sin(_wobble_time)) * bob_amount * speed_ratio
+	_ability_flash = max(0.0, _ability_flash - delta * 2.0)
+	_wobble_time += delta * wobble_speed * (0.3 + speed_ratio + _ability_flash * 2.0)
+	var flash_boost := 1.0 + _ability_flash * 1.5
+	visual.rotation.z = sin(_wobble_time) * wobble_amount * speed_ratio * flash_boost
+	visual.rotation.x = cos(_wobble_time * 0.5) * wobble_amount * 0.5 * speed_ratio * flash_boost
+	visual.position.y = abs(sin(_wobble_time)) * bob_amount * speed_ratio * flash_boost

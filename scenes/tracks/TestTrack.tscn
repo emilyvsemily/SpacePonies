@@ -1,6 +1,7 @@
-[gd_scene load_steps=17 format=3 uid="uid://c0track000001"]
+[gd_scene load_steps=18 format=3 uid="uid://c0track000001"]
 
 [ext_resource type="Script" path="res://scripts/finish_line.gd" id="1_finish"]
+[ext_resource type="PackedScene" uid="uid://c0food0000001" path="res://scenes/pickups/FoodPickup.tscn" id="2_food"]
 
 [sub_resource type="BoxMesh" id="BoxMesh_floor"]
 size = Vector3(10, 1, 220)
@@ -147,3 +148,21 @@ script = ExtResource("1_finish")
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="FinishGate/FinishTrigger"]
 shape = SubResource("BoxShape3D_finishTrigger")
+
+[node name="Food1" parent="." instance=ExtResource("2_food")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2, 1, 70)
+
+[node name="Food2" parent="." instance=ExtResource("2_food")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 1, 40)
+
+[node name="Food3" parent="." instance=ExtResource("2_food")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1, 1, 10)
+
+[node name="Food4" parent="." instance=ExtResource("2_food")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 1, -20)
+
+[node name="Food5" parent="." instance=ExtResource("2_food")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, -50)
+
+[node name="Food6" parent="." instance=ExtResource("2_food")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2, 1, -75)

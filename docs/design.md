@@ -53,6 +53,15 @@ Feeding ties the race loop directly to the stable loop: **food is collected on t
 - **Upkeep scales with stable size:** more bred ponies means more food needed to keep everyone fed, so breeding grows your options but also your feeding burden — the intended economic tension.
 - Exact under-feeding consequences and upkeep numbers are intentionally left open — a starting mechanic, not a balanced economy yet.
 
+## Pony Lifespan & Expiration
+
+Ponies aren't permanent: each has a **limited lifespan** and expires ("dies") once its timer runs out, unless the player pays — a real-money in-app purchase — to extend/renew it. An expired pony becomes **"space glue"**, a dark-comedy nod to the classic glue-factory joke, reframed for the space setting.
+
+- **Design tension to flag:** this pushes against the "wholesome-absurd, never mean-spirited" tone pillar above — worth revisiting how "space glue" is actually shown (offscreen dark joke vs. something explicit) once this is closer to being built.
+- **Monetization shape:** pay-to-*prevent-loss* is a well-known aggressive monetization pattern (loss-aversion/FOMO), so price point, warning/grace-period UX, and scope (every pony vs. just rare/high-investment ones) are open questions, not decided here.
+- Real payment processing (App/Play Store IAP, etc.) is a distinct, not-yet-scheduled milestone — separate from M4, which only covers the lifespan timer and expiration state itself.
+- Exact lifespan duration and renewal cost are TBD.
+
 ## Technical Architecture
 
 - **Engine/language:** Godot 4.x (4.7), GDScript to start.
@@ -65,5 +74,5 @@ Feeding ties the race loop directly to the stable loop: **food is collected on t
 2. **M1 — Vertical slice, gray-box (current target):** one placeholder pony, one dumb test track, physics-driven janky movement, single-player, playable start-to-finish lap.
 3. **M2 — Core race loop:** 4 ponies, full race with placements, one wacky ability wired in, food pickups on the track (collection only — feeding comes in M4).
 4. **M3 — Online multiplayer:** up to 4 real players racing together online.
-5. **M4 — Breeding & Stable:** Mendelian trait system, stable UI, pony generation from two parents, and the zero-G food-throwing feeding mechanic with upkeep scaling by stable size.
+5. **M4 — Breeding & Stable:** Mendelian trait system, stable UI, pony generation from two parents, the zero-G food-throwing feeding mechanic with upkeep scaling by stable size, and the pony lifespan/expiration timer (state + UI only — real-money renewal is a separate future milestone).
 6. **M5 — Content & polish:** reskin with chosen art style, expand trait library, more tracks, animation/jank polish.
