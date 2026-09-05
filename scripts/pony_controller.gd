@@ -65,9 +65,17 @@ extends CharacterBody3D
 @onready var sync: MultiplayerSynchronizer = $MultiplayerSynchronizer
 @onready var exhaust: CPUParticles3D = $Visual/Exhaust
 
-@onready var _leg_hips: Array[Node3D] = [$Visual/Leg1Hip, $Visual/Leg2Hip, $Visual/Leg3Hip]
+## The glTF import wraps our exported "PonyRig" group in an extra generic
+## scene-root node, hence the double nesting (RigInstance/PonyRig/...).
+@onready var _leg_hips: Array[Node3D] = [
+	$Visual/RigInstance/PonyRig/Leg1Hip,
+	$Visual/RigInstance/PonyRig/Leg2Hip,
+	$Visual/RigInstance/PonyRig/Leg3Hip
+]
 @onready var _leg_knees: Array[Node3D] = [
-	$Visual/Leg1Hip/Leg1Knee, $Visual/Leg2Hip/Leg2Knee, $Visual/Leg3Hip/Leg3Knee
+	$Visual/RigInstance/PonyRig/Leg1Hip/Leg1Knee,
+	$Visual/RigInstance/PonyRig/Leg2Hip/Leg2Knee,
+	$Visual/RigInstance/PonyRig/Leg3Hip/Leg3Knee
 ]
 
 var food_collected: int = 0

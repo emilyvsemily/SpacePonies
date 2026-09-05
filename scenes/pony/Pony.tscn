@@ -1,52 +1,11 @@
-[gd_scene load_steps=15 format=3 uid="uid://c0pony0000001"]
+[gd_scene load_steps=3 format=3 uid="uid://c0pony0000001"]
 
 [ext_resource type="Script" path="res://scripts/pony_controller.gd" id="1_pony"]
+[ext_resource type="PackedScene" path="res://assets/pony_rig/pony_rig.gltf" id="2_rig"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_body"]
 radius = 1.0
 height = 2.8
-
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_body"]
-albedo_color = Color(0.82, 0.55, 0.95, 1.0)
-
-[sub_resource type="BoxMesh" id="BoxMesh_snout"]
-size = Vector3(0.66, 0.66, 0.88)
-
-[sub_resource type="BoxMesh" id="BoxMesh_leg1upper"]
-size = Vector3(0.32, 0.95, 0.32)
-
-[sub_resource type="BoxMesh" id="BoxMesh_leg1lower"]
-size = Vector3(0.27, 0.85, 0.27)
-
-[sub_resource type="BoxMesh" id="BoxMesh_leg2upper"]
-size = Vector3(0.3, 1.1, 0.3)
-
-[sub_resource type="BoxMesh" id="BoxMesh_leg2lower"]
-size = Vector3(0.26, 0.95, 0.26)
-
-[sub_resource type="BoxMesh" id="BoxMesh_leg3upper"]
-size = Vector3(0.34, 0.75, 0.34)
-
-[sub_resource type="BoxMesh" id="BoxMesh_leg3lower"]
-size = Vector3(0.29, 0.7, 0.29)
-
-[sub_resource type="BoxMesh" id="BoxMesh_flame"]
-size = Vector3(0.18, 0.22, 0.18)
-
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_leg1"]
-albedo_color = Color(0.35, 0.28, 0.55, 1.0)
-
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_leg2"]
-albedo_color = Color(0.45, 0.35, 0.65, 1.0)
-
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_leg3"]
-albedo_color = Color(0.3, 0.22, 0.48, 1.0)
-
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_flame"]
-albedo_color = Color(1.0, 0.6, 0.25, 1.0)
-emission_enabled = true
-emission = Color(1.0, 0.5, 0.15, 1.0)
-emission_energy_multiplier = 1.0
 
 [node name="Pony" type="CharacterBody3D" groups=["ponies"]]
 script = ExtResource("1_pony")
@@ -56,76 +15,11 @@ shape = SubResource("CapsuleShape3D_body")
 
 [node name="Visual" type="Node3D" parent="."]
 
-[node name="Snout" type="MeshInstance3D" parent="Visual"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.22, 0.22, -1.21)
-mesh = SubResource("BoxMesh_snout")
-surface_material_override/0 = SubResource("StandardMaterial3D_body")
-
-[node name="Leg1Hip" type="Node3D" parent="Visual"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.55, -0.9, 0.35)
-
-[node name="Leg1Upper" type="MeshInstance3D" parent="Visual/Leg1Hip"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.475, 0)
-mesh = SubResource("BoxMesh_leg1upper")
-surface_material_override/0 = SubResource("StandardMaterial3D_leg1")
-
-[node name="Leg1Knee" type="Node3D" parent="Visual/Leg1Hip"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.95, 0)
-
-[node name="Leg1Lower" type="MeshInstance3D" parent="Visual/Leg1Hip/Leg1Knee"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.425, 0)
-mesh = SubResource("BoxMesh_leg1lower")
-surface_material_override/0 = SubResource("StandardMaterial3D_leg1")
-
-[node name="Leg1Flame" type="MeshInstance3D" parent="Visual/Leg1Hip/Leg1Knee"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.9, 0)
-mesh = SubResource("BoxMesh_flame")
-surface_material_override/0 = SubResource("StandardMaterial3D_flame")
-
-[node name="Leg2Hip" type="Node3D" parent="Visual"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.6, -0.85, -0.15)
-
-[node name="Leg2Upper" type="MeshInstance3D" parent="Visual/Leg2Hip"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.55, 0)
-mesh = SubResource("BoxMesh_leg2upper")
-surface_material_override/0 = SubResource("StandardMaterial3D_leg2")
-
-[node name="Leg2Knee" type="Node3D" parent="Visual/Leg2Hip"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -1.1, 0)
-
-[node name="Leg2Lower" type="MeshInstance3D" parent="Visual/Leg2Hip/Leg2Knee"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.475, 0)
-mesh = SubResource("BoxMesh_leg2lower")
-surface_material_override/0 = SubResource("StandardMaterial3D_leg2")
-
-[node name="Leg2Flame" type="MeshInstance3D" parent="Visual/Leg2Hip/Leg2Knee"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -1.0, 0)
-mesh = SubResource("BoxMesh_flame")
-surface_material_override/0 = SubResource("StandardMaterial3D_flame")
-
-[node name="Leg3Hip" type="Node3D" parent="Visual"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.1, -0.95, -0.6)
-
-[node name="Leg3Upper" type="MeshInstance3D" parent="Visual/Leg3Hip"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.375, 0)
-mesh = SubResource("BoxMesh_leg3upper")
-surface_material_override/0 = SubResource("StandardMaterial3D_leg3")
-
-[node name="Leg3Knee" type="Node3D" parent="Visual/Leg3Hip"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.75, 0)
-
-[node name="Leg3Lower" type="MeshInstance3D" parent="Visual/Leg3Hip/Leg3Knee"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.35, 0)
-mesh = SubResource("BoxMesh_leg3lower")
-surface_material_override/0 = SubResource("StandardMaterial3D_leg3")
-
-[node name="Leg3Flame" type="MeshInstance3D" parent="Visual/Leg3Hip/Leg3Knee"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.75, 0)
-mesh = SubResource("BoxMesh_flame")
-surface_material_override/0 = SubResource("StandardMaterial3D_flame")
+[node name="RigInstance" parent="Visual" instance=ExtResource("2_rig")]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 0, 0, 0)
 
 [node name="Exhaust" type="CPUParticles3D" parent="Visual"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.3, 1.0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.15, 1.0)
 emitting = false
 
 [node name="SpringArm3D" type="SpringArm3D" parent="."]

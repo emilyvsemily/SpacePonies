@@ -7,3 +7,7 @@ export.cfg
 export_presets.cfg
 *.translation
 android/
+
+# Node tooling (tools/pony_rig_export)
+node_modules/
+package-lock.json
