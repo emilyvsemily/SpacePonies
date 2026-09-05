@@ -33,14 +33,25 @@ static func build(visual: Node3D, genome: PonyGenome) -> Dictionary:
 
 	var rig := Node3D.new()
 	rig.name = "Rig"
+	# This geometry is authored head-toward-+Z (matching the Look Book's own
+	# convention — head at z=+0.92, tail at z=-0.95), but this game treats
+	# -Z as forward. The old fixed imported rig had this same 180° flip
+	# baked into its instance transform; dropping that when the rig became
+	# procedural is why ponies were running backward.
+	rig.rotation.y = PI
 	visual.add_child(rig)
 
-	var body_main := _mat(PonyGenome.hsl_to_color(genome.coat_hue, 0.42, 0.42))
-	var body_light := _mat(PonyGenome.hsl_to_color(genome.coat_hue, 0.46, 0.62))
-	var body_dark := _mat(PonyGenome.hsl_to_color(genome.coat_hue, 0.4, 0.24))
-	var head_main := _mat(PonyGenome.hsl_to_color(genome.coat_hue, 0.38, 0.5))
-	var head_light := _mat(PonyGenome.hsl_to_color(genome.coat_hue, 0.34, 0.66))
-	var head_dark := _mat(PonyGenome.hsl_to_color(genome.coat_hue, 0.42, 0.32))
+	# One consistent coat tone instead of light/dark accent blobs on the
+	# same surface — the previous 3-tone patchwork (main/light/dark facets)
+	# read as blotchy and dark. Flame/horn/eye materials stay distinct since
+	# those are meant to pop as separate features, not "coat."
+	var coat_mat := _mat(PonyGenome.hsl_to_color(genome.coat_hue, 0.45, 0.58))
+	var body_main := coat_mat
+	var body_light := coat_mat
+	var body_dark := coat_mat
+	var head_main := coat_mat
+	var head_light := coat_mat
+	var head_dark := coat_mat
 	var mane_light := _mat(PonyGenome.hsl_to_color(genome.mane_hue, 0.55, 0.72))
 	var mane_dark := _mat(PonyGenome.hsl_to_color(genome.mane_hue, 0.5, 0.42))
 	var eye_white := _mat(Color(0.953, 0.933, 0.984))
@@ -315,33 +326,24 @@ static func _build_leg(parent: Node3D, x: float, z: float, length: float, leg_ty
 
 	return {"hip": hip, "knee": knee}
 
+## One tone per leg type instead of light/dark/accent variants — same
+## "just one color" simplification as the body/head. flame_orange stays
+## distinct for rocket-boots since that's the thruster fire, a functional
+## effect rather than a coat tone.
 static func _leg_materials(leg_type: String, coat_hue: float, flame_orange: Material, flame_yellow: Material) -> Dictionary:
 	match leg_type:
 		"propeller-feet":
-			return {
-				"light": _mat(PonyGenome.hsl_to_color(coat_hue, 0.06, 0.75), Color.BLACK, 0.3, 0.55),
-				"dark": _mat(PonyGenome.hsl_to_color(coat_hue, 0.08, 0.42), Color.BLACK, 0.3, 0.55),
-				"accent": _mat(PonyGenome.hsl_to_color(coat_hue, 0.1, 0.85), PonyGenome.hsl_to_color(coat_hue, 0.3, 0.4), 0.25, 0.6),
-			}
+			var base := _mat(PonyGenome.hsl_to_color(coat_hue, 0.1, 0.62), Color.BLACK, 0.25, 0.3)
+			return {"light": base, "dark": base, "accent": base}
 		"tentacles":
-			var tl := _mat(PonyGenome.hsl_to_color(coat_hue + 0.06, 0.55, 0.5), Color.BLACK, 0.3, 0.05)
-			return {
-				"light": tl,
-				"dark": _mat(PonyGenome.hsl_to_color(coat_hue + 0.06, 0.5, 0.3), Color.BLACK, 0.3, 0.05),
-				"accent": tl,
-			}
+			var base := _mat(PonyGenome.hsl_to_color(coat_hue + 0.06, 0.5, 0.48), Color.BLACK, 0.28, 0.05)
+			return {"light": base, "dark": base, "accent": base}
 		"hooves":
-			return {
-				"light": _mat(PonyGenome.hsl_to_color(coat_hue, 0.32, 0.36)),
-				"dark": _mat(PonyGenome.hsl_to_color(coat_hue, 0.34, 0.24)),
-				"accent": _mat(PonyGenome.hsl_to_color(coat_hue, 0.2, 0.12)),
-			}
+			var base := _mat(PonyGenome.hsl_to_color(coat_hue, 0.33, 0.42))
+			return {"light": base, "dark": base, "accent": base}
 		_:
-			return {
-				"light": _mat(PonyGenome.hsl_to_color(coat_hue, 0.3, 0.34)),
-				"dark": _mat(PonyGenome.hsl_to_color(coat_hue, 0.32, 0.24)),
-				"accent": flame_orange,
-			}
+			var base := _mat(PonyGenome.hsl_to_color(coat_hue, 0.3, 0.42))
+			return {"light": base, "dark": base, "accent": flame_orange}
 
 ## roughness/metallic defaults are already tuned shinier than the Look
 ## Book's own values (which read flat/washed-out once lit in Godot) — a
