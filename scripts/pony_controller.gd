@@ -251,14 +251,25 @@ func _check_collision_roll() -> void:
 	var impact_speed := _pre_slide_velocity.length()
 	if impact_speed <= collision_roll_threshold:
 		return
-	var collision := get_slide_collision(0)
-	var normal := collision.get_normal()
+	# Skip floor-like contacts (landing from a jump, settling at spawn) —
+	# only a wall/bump/pony hit should trigger the roll. A collision normal
+	# pointing mostly straight up is the ground plane, not an impact.
+	var normal := _first_non_floor_normal()
+	if normal == Vector3.ZERO:
+		return
 	var incoming := _pre_slide_velocity.normalized()
 	var spin_axis := normal.cross(incoming)
 	if spin_axis.length() < 0.05:
 		spin_axis = Vector3.UP
 	_barrel_roll_axis = spin_axis.normalized()
 	_barrel_roll_timer = barrel_roll_duration
+
+func _first_non_floor_normal() -> Vector3:
+	for i in get_slide_collision_count():
+		var normal := get_slide_collision(i).get_normal()
+		if normal.dot(Vector3.UP) < 0.7:
+			return normal
+	return Vector3.ZERO
 
 func _update_roll(delta: float) -> void:
 	_barrel_roll_cooldown = max(0.0, _barrel_roll_cooldown - delta)
