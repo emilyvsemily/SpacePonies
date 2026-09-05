@@ -115,6 +115,13 @@ var _barrel_roll_cooldown: float = 0.0
 var _barrel_roll_axis: Vector3 = Vector3.ZERO
 var _flail_seed: float = 0.0
 
+## Shared across every Pony instance so 4 ponies loading at once (race
+## start) don't each allocate their own copies of the same mesh/material —
+## that redundant setup work landing all at once was a real contributor to
+## the scene-load hitch.
+static var _shared_exhaust_mesh: BoxMesh
+static var _shared_horn_trail_mesh: SphereMesh
+
 func _ready() -> void:
 	camera.current = is_local_player
 	_ai_seed = randf() * 1000.0
@@ -123,6 +130,7 @@ func _ready() -> void:
 	_flail_seed = randf() * 1000.0
 	_setup_exhaust()
 	_setup_horn_trail()
+	_boost_rig_shininess()
 
 	var config := SceneReplicationConfig.new()
 	config.add_property(NodePath(".:position"))
@@ -146,24 +154,34 @@ func _setup_exhaust() -> void:
 	exhaust.scale_amount_max = 0.35
 	exhaust.angular_velocity_min = -180.0
 	exhaust.angular_velocity_max = 180.0
+	# Generous explicit bounds — CPUParticles3D's automatic visibility AABB
+	# can under-estimate the true travel range and cull particles inside
+	# their own effect, which reads as flickering/strobing.
+	exhaust.visibility_aabb = AABB(Vector3(-6, -3, -6), Vector3(12, 8, 14))
 	var grad := Gradient.new()
 	grad.add_point(0.0, Color(1.0, 0.85, 0.2, 1.0))
 	grad.add_point(0.5, Color(1.0, 0.5, 0.1, 1.0))
 	grad.add_point(1.0, Color(0.3, 0.8, 0.7, 0.0))
 	exhaust.color_ramp = grad
-	# Chunky cube "pixel debris" mesh instead of a soft billboard, matching
-	# the Look Book's Turbo Boost look — reuses the same low-poly language
-	# as the rest of the rig.
-	var box := BoxMesh.new()
-	box.size = Vector3(0.14, 0.14, 0.14)
-	var particle_mat := StandardMaterial3D.new()
-	particle_mat.vertex_color_use_as_albedo = true
-	particle_mat.emission_enabled = true
-	particle_mat.emission = Color(1.0, 1.0, 1.0)
-	particle_mat.emission_energy_multiplier = 1.4
-	particle_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	box.material = particle_mat
-	exhaust.mesh = box
+	exhaust.mesh = _get_exhaust_mesh()
+
+## Chunky cube "pixel debris" mesh instead of a soft billboard, matching the
+## Look Book's Turbo Boost look. Unshaded + vertex-color (no emission): a
+## flat white emission color was overpowering the color ramp under bloom,
+## which is why these were reading as white instead of fire-colored, and
+## was very likely also the "seizure-inducing" flicker (bright emissive
+## particles blooming hard, worsened by the AABB culling above).
+func _get_exhaust_mesh() -> BoxMesh:
+	if _shared_exhaust_mesh == null:
+		var box := BoxMesh.new()
+		box.size = Vector3(0.14, 0.14, 0.14)
+		var particle_mat := StandardMaterial3D.new()
+		particle_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		particle_mat.vertex_color_use_as_albedo = true
+		particle_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		box.material = particle_mat
+		_shared_exhaust_mesh = box
+	return _shared_exhaust_mesh
 
 ## Trails a spinning horn during a Zero-G Barrel Roll (matches the Look
 ## Book's cyan horn-glow trail). Emits continuously in world space — since
@@ -185,20 +203,53 @@ func _setup_horn_trail() -> void:
 	horn_trail.gravity = Vector3.ZERO
 	horn_trail.scale_amount_min = 0.1
 	horn_trail.scale_amount_max = 0.18
+	# world-space (local_coords=false) particles orbit far from this node's
+	# own origin as the body spins, so the auto-estimated AABB is unreliable
+	# here specifically — same flicker risk as the exhaust, bigger radius.
+	horn_trail.visibility_aabb = AABB(Vector3(-4, -4, -4), Vector3(8, 8, 8))
 	var grad := Gradient.new()
 	grad.add_point(0.0, Color(0.44, 0.89, 0.77, 0.9))
 	grad.add_point(1.0, Color(0.44, 0.89, 0.77, 0.0))
 	horn_trail.color_ramp = grad
-	var mat := StandardMaterial3D.new()
-	mat.vertex_color_use_as_albedo = true
-	mat.emission_enabled = true
-	mat.emission = Color(0.44, 0.89, 0.77)
-	mat.emission_energy_multiplier = 2.0
-	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	horn_trail.mesh = SphereMesh.new()
-	horn_trail.mesh.radial_segments = 6
-	horn_trail.mesh.rings = 3
-	horn_trail.mesh.material = mat
+	horn_trail.mesh = _get_horn_trail_mesh()
+
+func _get_horn_trail_mesh() -> SphereMesh:
+	if _shared_horn_trail_mesh == null:
+		var sphere := SphereMesh.new()
+		sphere.radial_segments = 6
+		sphere.rings = 3
+		var mat := StandardMaterial3D.new()
+		mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		mat.vertex_color_use_as_albedo = true
+		mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		sphere.material = mat
+		_shared_horn_trail_mesh = sphere
+	return _shared_horn_trail_mesh
+
+## The imported rig's materials read as flat/washed-out — bump shininess
+## uniformly across every surface (lower roughness, more metallic, a
+## glossy clearcoat) rather than hand-tuning each of the ~16 materials.
+## Mutates the shared imported Material resources directly, so this only
+## needs to actually take effect once, but re-running per pony instance is
+## harmless (idempotent).
+func _boost_rig_shininess() -> void:
+	var rig := get_node_or_null("Visual/RigInstance/PonyRig")
+	if rig != null:
+		_boost_shininess_recursive(rig)
+
+func _boost_shininess_recursive(node: Node) -> void:
+	if node is MeshInstance3D:
+		var mesh: Mesh = node.mesh
+		if mesh != null:
+			for i in mesh.get_surface_count():
+				var mat := mesh.surface_get_material(i)
+				if mat is StandardMaterial3D:
+					mat.roughness = clampf(mat.roughness * 0.4, 0.05, 1.0)
+					mat.metallic = clampf(mat.metallic + 0.35, 0.0, 1.0)
+					mat.clearcoat_enabled = true
+					mat.clearcoat = 0.5
+	for child in node.get_children():
+		_boost_shininess_recursive(child)
 
 func _physics_process(delta: float) -> void:
 	if not is_multiplayer_authority():
