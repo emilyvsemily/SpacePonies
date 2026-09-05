@@ -74,18 +74,17 @@ extends CharacterBody3D
 @onready var exhaust: CPUParticles3D = $Visual/Exhaust
 @onready var horn_trail: CPUParticles3D = $Visual/HornTrail
 
-## The glTF import wraps our exported "PonyRig" group in an extra generic
-## scene-root node, hence the double nesting (RigInstance/PonyRig/...).
-@onready var _leg_hips: Array[Node3D] = [
-	$Visual/RigInstance/PonyRig/Leg1Hip,
-	$Visual/RigInstance/PonyRig/Leg2Hip,
-	$Visual/RigInstance/PonyRig/Leg3Hip
-]
-@onready var _leg_knees: Array[Node3D] = [
-	$Visual/RigInstance/PonyRig/Leg1Hip/Leg1Knee,
-	$Visual/RigInstance/PonyRig/Leg2Hip/Leg2Knee,
-	$Visual/RigInstance/PonyRig/Leg3Hip/Leg3Knee
-]
+## The pony's genetic traits — see pony_genome.gd. Assigned via
+## build_from_genome(), normally by RaceManager at race start (each player/
+## bot gets its own randomly generated pony); _ready() below generates a
+## throwaway fallback genome so a standalone/offline Pony scene still has
+## a body, which RaceManager's call immediately replaces in the normal flow.
+var genome: PonyGenome = null
+
+## Leg count/type varies per genome, so these are sized dynamically by
+## build_from_genome() rather than fixed at 3 — see pony_rig_builder.gd.
+var _leg_hips: Array[Node3D] = []
+var _leg_knees: Array[Node3D] = []
 
 var food_collected: int = 0
 
@@ -100,11 +99,11 @@ var _drift_time: float = 0.0
 var _drift_seed: float = 0.0
 
 var _walk_time: float = 0.0
-var _leg_phase_offsets: Array[float] = [0.0, 2.3, 4.1]
-var _hip_angle: Array[float] = [0.0, 0.0, 0.0]
-var _hip_vel: Array[float] = [0.0, 0.0, 0.0]
-var _knee_angle: Array[float] = [0.0, 0.0, 0.0]
-var _knee_vel: Array[float] = [0.0, 0.0, 0.0]
+var _leg_phase_offsets: Array[float] = []
+var _hip_angle: Array[float] = []
+var _hip_vel: Array[float] = []
+var _knee_angle: Array[float] = []
+var _knee_vel: Array[float] = []
 
 var _roll_angle: Vector3 = Vector3.ZERO
 var _roll_vel: Vector3 = Vector3.ZERO
@@ -130,12 +129,47 @@ func _ready() -> void:
 	_flail_seed = randf() * 1000.0
 	_setup_exhaust()
 	_setup_horn_trail()
-	_boost_rig_shininess()
+	# Fallback so a standalone Pony (no RaceManager) still has a body;
+	# RaceManager overrides this with a seeded/synced genome immediately
+	# after in the normal race-start flow.
+	build_from_genome(PonyGenome.generate_random())
 
 	var config := SceneReplicationConfig.new()
 	config.add_property(NodePath(".:position"))
 	config.add_property(NodePath(".:rotation"))
 	sync.replication_config = config
+
+## Builds this pony's visual rig and leg-animation state from a genome, and
+## tunes movement to its stats. Called by RaceManager for every slot at
+## race start (each player/bot gets its own randomly generated pony); safe
+## to call again later for breeding/regeneration.
+func build_from_genome(g: PonyGenome) -> void:
+	genome = g
+	var built := PonyRigBuilder.build(visual, genome)
+	_leg_hips = built.leg_hips
+	_leg_knees = built.leg_knees
+	_leg_phase_offsets = built.leg_phase_offsets
+	var n := _leg_hips.size()
+	_hip_angle.resize(n)
+	_hip_vel.resize(n)
+	_knee_angle.resize(n)
+	_knee_vel.resize(n)
+	_hip_angle.fill(0.0)
+	_hip_vel.fill(0.0)
+	_knee_angle.fill(0.0)
+	_knee_vel.fill(0.0)
+
+	visual.scale = Vector3.ONE * (1.5 * genome.size)
+
+	# Stats -> movement tuning. Wackiness/Chaos scaling the erratic-ness of
+	# movement is exactly what docs/design.md's genetics framework describes
+	# for that stat, not just a flavor number.
+	max_speed = 9.0 * (0.7 + genome.stat_speed / 100.0 * 0.6)
+	acceleration = 7.0 * (0.7 + genome.stat_acceleration / 100.0 * 0.6)
+	turn_speed = 2.4 * (0.7 + genome.stat_handling / 100.0 * 0.6)
+	var chaos_ratio: float = 0.5 + genome.stat_wackiness / 100.0
+	wobble_amount = 0.12 * chaos_ratio
+	drift_strength = 0.35 * chaos_ratio
 
 func _setup_exhaust() -> void:
 	if exhaust == null:
@@ -225,38 +259,6 @@ func _get_horn_trail_mesh() -> SphereMesh:
 		sphere.material = mat
 		_shared_horn_trail_mesh = sphere
 	return _shared_horn_trail_mesh
-
-## The imported rig's materials read as flat/washed-out — bump shininess
-## uniformly across every surface (lower roughness, a glossy clearcoat)
-## rather than hand-tuning each of the ~16 materials. Mutates the shared
-## imported Material resources directly, so this only needs to actually
-## take effect once, but re-running per pony instance is harmless
-## (idempotent).
-func _boost_rig_shininess() -> void:
-	var rig := get_node_or_null("Visual/RigInstance/PonyRig")
-	if rig != null:
-		_boost_shininess_recursive(rig)
-
-func _boost_shininess_recursive(node: Node) -> void:
-	if node is MeshInstance3D:
-		var mesh: Mesh = node.mesh
-		if mesh != null:
-			for i in mesh.get_surface_count():
-				var mat := mesh.surface_get_material(i)
-				if mat is StandardMaterial3D:
-					mat.roughness = clampf(mat.roughness * 0.4, 0.05, 1.0)
-					# A metallic surface has almost no diffuse albedo and
-					# relies on environment reflections to show any color —
-					# with no ReflectionProbe in the scene, the earlier
-					# +0.35 boost made every pony read as near-black
-					# regardless of its actual color. Barely nudge it and
-					# get the shine from clearcoat + low roughness instead,
-					# which stays dielectric and keeps the base color intact.
-					mat.metallic = clampf(mat.metallic + 0.06, 0.0, 1.0)
-					mat.clearcoat_enabled = true
-					mat.clearcoat = 0.5
-	for child in node.get_children():
-		_boost_shininess_recursive(child)
 
 func _physics_process(delta: float) -> void:
 	if not is_multiplayer_authority():

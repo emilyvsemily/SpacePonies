@@ -38,21 +38,37 @@ finish_banner_path = NodePath("FinishBanner")
 [node name="FinishBanner" parent="." instance=ExtResource("4_banner")]
 
 [node name="Pony" parent="." instance=ExtResource("2_pony")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5.2, 2.2, 95)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6.5, 2.2, 95)
 is_local_player = true
 pony_name = "You"
 
 [node name="Bot1" parent="." instance=ExtResource("2_pony")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.7, 2.2, 95)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4.6, 2.2, 95)
 pony_name = "Bot 1"
 
 [node name="Bot2" parent="." instance=ExtResource("2_pony")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.7, 2.2, 95)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.8, 2.2, 95)
 pony_name = "Bot 2"
 
 [node name="Bot3" parent="." instance=ExtResource("2_pony")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5.2, 2.2, 95)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.9, 2.2, 95)
 pony_name = "Bot 3"
+
+[node name="Bot4" parent="." instance=ExtResource("2_pony")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.9, 2.2, 95)
+pony_name = "Bot 4"
+
+[node name="Bot5" parent="." instance=ExtResource("2_pony")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.8, 2.2, 95)
+pony_name = "Bot 5"
+
+[node name="Bot6" parent="." instance=ExtResource("2_pony")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.6, 2.2, 95)
+pony_name = "Bot 6"
+
+[node name="Bot7" parent="." instance=ExtResource("2_pony")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6.5, 2.2, 95)
+pony_name = "Bot 7"
 
 [node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
 transform = Transform3D(0.707, -0.5, 0.5, 0, 0.707, 0.707, -0.707, -0.5, 0.5, 0, 10, 0)

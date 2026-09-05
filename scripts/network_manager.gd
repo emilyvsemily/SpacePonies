@@ -6,7 +6,7 @@ extends Node
 ## docs/design.md.
 
 const PORT := 8910
-const MAX_PLAYERS := 4
+const MAX_PLAYERS := 8
 const RACE_SCENE := "res://scenes/Main.tscn"
 const LOBBY_SCENE := "res://scenes/ui/NetworkLobby.tscn"
 
@@ -14,6 +14,12 @@ signal player_list_changed
 
 ## Peer IDs currently connected, host (1) always included once hosting/joined.
 var connected_peers: Array = []
+
+## Set by _start_race_rpc, read by RaceManager to seed genome generation the
+## same way on every peer — otherwise each client would roll different
+## random ponies for the same slot. Survives the scene change to Main.tscn
+## since autoloads aren't torn down by change_scene_to_file.
+var race_seed: int = 0
 
 func _ready() -> void:
 	multiplayer.peer_connected.connect(_on_peer_connected)
@@ -46,10 +52,11 @@ func join_game(address: String) -> Error:
 func start_race() -> void:
 	if not multiplayer.is_server():
 		return
-	_start_race_rpc.rpc()
+	_start_race_rpc.rpc(randi())
 
 @rpc("authority", "call_local", "reliable")
-func _start_race_rpc() -> void:
+func _start_race_rpc(seed_value: int) -> void:
+	race_seed = seed_value
 	get_tree().change_scene_to_file(RACE_SCENE)
 
 func is_networked() -> bool:
