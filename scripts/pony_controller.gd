@@ -43,15 +43,30 @@ extends CharacterBody3D
 @export var ability_cooldown: float = 2.5
 @export var ability_recoil_kick: float = 3.0
 
-## Walk-cycle leg rig. Phase offsets are irregular on purpose — these legs
-## are mismatched, they shouldn't step in a clean tripod gait.
+## Walk-cycle leg rig. Springs are deliberately loose and underdamped —
+## these legs are dangling in zero gravity, so they should lag well behind
+## the gait target, overshoot it, and keep drifting after it stops, rather
+## than tracking it crisply. Stiffness/damping are the whole difference
+## between "animated legs" and "ragdoll legs".
 @export var leg_swing_freq: float = 9.0
 @export var leg_swing_amplitude: float = 0.9
 @export var knee_bend_amplitude: float = 1.1
-@export var hip_stiffness: float = 90.0
-@export var hip_damping: float = 9.0
-@export var knee_stiffness: float = 55.0
-@export var knee_damping: float = 5.0
+@export var hip_stiffness: float = 26.0
+@export var hip_damping: float = 3.0
+@export var knee_stiffness: float = 16.0
+@export var knee_damping: float = 1.8
+## Zero-g idle drift, so legs keep floating even at a standstill.
+@export var leg_idle_dangle: float = 0.22
+
+## Head and tail run their own spring-damper chains so they lag and whip
+## behind the body instead of moving with it — the swoosh.
+@export var head_stiffness: float = 34.0
+@export var head_damping: float = 3.4
+@export var tail_stiffness: float = 18.0
+@export var tail_damping: float = 1.9
+@export var tail_swoosh: float = 2.6
+## How hard turning throws the head and tail out sideways.
+@export var turn_whip: float = 7.0
 
 ## Ability-use "roll" kick: a small impulse-driven spring on the whole visual
 ## rig, always relaxing back toward neutral.
@@ -65,8 +80,15 @@ extends CharacterBody3D
 @export var collision_roll_threshold: float = 3.0
 @export var barrel_roll_duration: float = 1.1
 @export var barrel_roll_spin_speed: float = 14.0
-@export var barrel_roll_flail_amount: float = 1.4
+@export var barrel_roll_flail_amount: float = 2.2
 @export var barrel_roll_retrigger_cooldown: float = 1.2
+## How much of the tumble axis is random rather than derived from the
+## impact. At 0 every hit rolls the same predictable way; higher mixes in
+## pitch and yaw so it tumbles end-over-end or corkscrews too.
+@export var barrel_roll_axis_chaos: float = 0.85
+## Springs go even looser mid-tumble — this is where the legs should look
+## genuinely unattached.
+@export var barrel_roll_limpness: float = 0.35
 
 @onready var visual: Node3D = $Visual
 @onready var camera: Camera3D = $SpringArm3D/Camera3D
@@ -93,6 +115,15 @@ var _head: Node3D = null
 var _tail: Node3D = null
 var _head_pitch: float = 0.0
 var _tail_sway: float = 0.12
+
+## Spring state for the head/tail chains (angle + angular velocity per axis).
+var _head_angle: Vector3 = Vector3.ZERO
+var _head_vel: Vector3 = Vector3.ZERO
+var _tail_angle: Vector3 = Vector3.ZERO
+var _tail_vel: Vector3 = Vector3.ZERO
+## Yaw delta from the previous frame, used to whip head/tail on turns.
+var _turn_rate: float = 0.0
+var _prev_yaw: float = 0.0
 
 var food_collected: int = 0
 
@@ -304,6 +335,11 @@ func _physics_process(delta: float) -> void:
 	move_and_slide()
 	_check_collision_roll()
 
+	# Yaw change this frame drives the head/tail whip below.
+	if delta > 0.0:
+		_turn_rate = wrapf(rotation.y - _prev_yaw, -PI, PI) / delta
+	_prev_yaw = rotation.y
+
 	var speed := Vector3(velocity.x, 0.0, velocity.z).length()
 	_update_leg_rig(delta, speed)
 	_update_roll(delta)
@@ -385,8 +421,20 @@ func _check_collision_roll() -> void:
 	var spin_axis := normal.cross(incoming)
 	if spin_axis.length() < 0.05:
 		spin_axis = Vector3.UP
-	_barrel_roll_axis = spin_axis.normalized()
-	_barrel_roll_timer = barrel_roll_duration
+	spin_axis = spin_axis.normalized()
+	# Blend the impact-derived axis with a random one so hits don't all
+	# tumble the same way — some roll along the body, some pitch it
+	# end-over-end, some corkscrew across two axes at once.
+	var random_axis := Vector3(
+		randf_range(-1.0, 1.0), randf_range(-1.0, 1.0), randf_range(-1.0, 1.0)
+	)
+	if random_axis.length() < 0.05:
+		random_axis = Vector3.RIGHT
+	spin_axis = spin_axis.lerp(random_axis.normalized(), barrel_roll_axis_chaos * randf())
+	if spin_axis.length() < 0.05:
+		spin_axis = Vector3.UP
+	_barrel_roll_axis = spin_axis.normalized() * randf_range(0.7, 1.45)
+	_barrel_roll_timer = barrel_roll_duration * randf_range(0.8, 1.5)
 
 func _first_non_floor_normal() -> Vector3:
 	for i in get_slide_collision_count():
@@ -430,51 +478,94 @@ func _update_roll(delta: float) -> void:
 func _update_leg_rig(delta: float, speed: float) -> void:
 	if _leg_hips.is_empty():
 		return
-	if _barrel_roll_timer > 0.0:
-		_flail_seed += delta * leg_swing_freq
-		for i in _leg_hips.size():
-			var flail_phase := _flail_seed * (1.3 + i * 0.4) + _leg_phase_offsets[i] * 2.0
-			var hip_target := sin(flail_phase) * barrel_roll_flail_amount
-			var hr := _spring_step(_hip_angle[i], _hip_vel[i], hip_target, hip_stiffness, hip_damping, delta)
-			_hip_angle[i] = hr.x
-			_hip_vel[i] = hr.y
-			_leg_hips[i].rotation.x = _hip_angle[i]
-
-			var knee_target := (sin(flail_phase * 1.7 + 1.0) * 0.5 + 0.5) * barrel_roll_flail_amount
-			var kr := _spring_step(_knee_angle[i], _knee_vel[i], knee_target, knee_stiffness, knee_damping, delta)
-			_knee_angle[i] = kr.x
-			_knee_vel[i] = kr.y
-			_leg_knees[i].rotation.x = _knee_angle[i]
-		return
-
 	var speed_ratio: float = clamp(speed / max_speed, 0.0, 1.0)
-	_walk_time += delta * leg_swing_freq * (0.3 + speed_ratio)
-	for i in _leg_hips.size():
-		var phase := _walk_time + _leg_phase_offsets[i]
+	var tumbling := _barrel_roll_timer > 0.0
 
-		var hip_target := sin(phase) * leg_swing_amplitude * speed_ratio
-		var hr := _spring_step(_hip_angle[i], _hip_vel[i], hip_target, hip_stiffness, hip_damping, delta)
+	# Mid-tumble the springs go limp, so the legs stop tracking any pose and
+	# just get dragged around by the body — the difference between legs
+	# playing a flail animation and legs that have given up entirely.
+	var limp: float = barrel_roll_limpness if tumbling else 1.0
+	var hip_k: float = hip_stiffness * limp
+	var hip_d: float = hip_damping * limp
+	var knee_k: float = knee_stiffness * limp
+	var knee_d: float = knee_damping * limp
+
+	if tumbling:
+		_flail_seed += delta * leg_swing_freq
+	else:
+		_walk_time += delta * leg_swing_freq * (0.3 + speed_ratio)
+
+	for i in _leg_hips.size():
+		var hip_target: float
+		var knee_target: float
+		if tumbling:
+			# Each leg on its own frequency and axis mix, so they scatter
+			# rather than flailing in formation.
+			var f := _flail_seed * (1.3 + i * 0.37) + _leg_phase_offsets[i] * 2.0
+			hip_target = sin(f) * barrel_roll_flail_amount
+			knee_target = (sin(f * 1.7 + 1.0) * 0.5 + 0.5) * barrel_roll_flail_amount
+			# Legs also splay sideways in a tumble instead of staying in the
+			# sagittal plane.
+			_leg_hips[i].rotation.z = sin(f * 0.63 + i) * barrel_roll_flail_amount * 0.4
+		else:
+			var phase := _walk_time + _leg_phase_offsets[i]
+			# The idle term never scales to zero with speed, so legs keep
+			# drifting in zero g at a standstill instead of locking rigid.
+			var dangle := sin(_walk_time * 0.23 + i * 1.7) * leg_idle_dangle
+			hip_target = sin(phase) * leg_swing_amplitude * speed_ratio + dangle
+			knee_target = maxf(sin(phase - 0.6), 0.0) * knee_bend_amplitude * speed_ratio \
+				+ absf(dangle) * 0.5
+			_leg_hips[i].rotation.z = lerpf(_leg_hips[i].rotation.z, 0.0, clampf(delta * 4.0, 0.0, 1.0))
+
+		var hr := _spring_step(_hip_angle[i], _hip_vel[i], hip_target, hip_k, hip_d, delta)
 		_hip_angle[i] = hr.x
 		_hip_vel[i] = hr.y
 		_leg_hips[i].rotation.x = _hip_angle[i]
 
-		var knee_target: float = maxf(sin(phase - 0.6), 0.0) * knee_bend_amplitude * speed_ratio
-		var kr := _spring_step(_knee_angle[i], _knee_vel[i], knee_target, knee_stiffness, knee_damping, delta)
+		var kr := _spring_step(_knee_angle[i], _knee_vel[i], knee_target, knee_k, knee_d, delta)
 		_knee_angle[i] = kr.x
 		_knee_vel[i] = kr.y
 		_leg_knees[i].rotation.x = _knee_angle[i]
 
-	_update_head_and_tail(speed_ratio)
+	_update_head_and_tail(delta, speed_ratio, tumbling)
 
-## Head nod and tail sway riding the same gait clock. Scaled by speed so a
-## standing pony settles rather than swishing in place.
-func _update_head_and_tail(speed_ratio: float) -> void:
+## Head and tail chase a moving target through their own springs rather
+## than being posed directly, so they lag the body, overshoot, and keep
+## swinging after it stops — the swoosh. Turning throws them sideways
+## (the whip), and a tumble throws them everywhere.
+func _update_head_and_tail(delta: float, speed_ratio: float, tumbling: bool) -> void:
+	var whip: float = clampf(_turn_rate * turn_whip, -1.6, 1.6)
+	var limp: float = 0.45 if tumbling else 1.0
+	var energy: float = 0.35 + speed_ratio
+	if tumbling:
+		energy = 1.8
+
 	if _head != null:
-		_head.rotation.x = _head_pitch + sin(_walk_time + 0.6) * 0.06 * speed_ratio
-		_head.rotation.z = sin(_walk_time * 0.42) * 0.05 * speed_ratio
+		var head_target := Vector3(
+			_head_pitch + sin(_walk_time * 0.9 + 0.6) * 0.22 * energy,
+			-whip * 0.5,
+			sin(_walk_time * 0.42) * 0.2 * energy + whip * 0.35
+		)
+		var hx := _spring_step(_head_angle.x, _head_vel.x, head_target.x, head_stiffness * limp, head_damping * limp, delta)
+		var hy := _spring_step(_head_angle.y, _head_vel.y, head_target.y, head_stiffness * limp, head_damping * limp, delta)
+		var hz := _spring_step(_head_angle.z, _head_vel.z, head_target.z, head_stiffness * limp, head_damping * limp, delta)
+		_head_angle = Vector3(hx.x, hy.x, hz.x)
+		_head_vel = Vector3(hx.y, hy.y, hz.y)
+		_head.rotation = _head_angle
+
 	if _tail != null:
-		_tail.rotation.z = sin(_walk_time * 0.62) * _tail_sway * (0.3 + speed_ratio)
-		_tail.rotation.x = sin(_walk_time * 0.5 + 1.1) * _tail_sway * 0.45 * (0.3 + speed_ratio)
+		var sway: float = _tail_sway * tail_swoosh
+		var tail_target := Vector3(
+			sin(_walk_time * 0.5 + 1.1) * sway * 0.5 * energy,
+			whip * 0.8,
+			sin(_walk_time * 0.62) * sway * energy - whip * 0.9
+		)
+		var tx := _spring_step(_tail_angle.x, _tail_vel.x, tail_target.x, tail_stiffness * limp, tail_damping * limp, delta)
+		var ty := _spring_step(_tail_angle.y, _tail_vel.y, tail_target.y, tail_stiffness * limp, tail_damping * limp, delta)
+		var tz := _spring_step(_tail_angle.z, _tail_vel.z, tail_target.z, tail_stiffness * limp, tail_damping * limp, delta)
+		_tail_angle = Vector3(tx.x, ty.x, tz.x)
+		_tail_vel = Vector3(tx.y, ty.y, tz.y)
+		_tail.rotation = _tail_angle
 
 func _update_wacky_wobble(delta: float, speed: float) -> void:
 	if visual == null:

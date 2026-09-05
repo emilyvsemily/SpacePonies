@@ -91,23 +91,35 @@ const BODY_PLANS := {
 	}
 }
 
-## Where each leg sits, per leg count. 4 legs is the real quadruped stance
-## (front/hind pairs, diagonal trot pairing). Fewer legs drop front ones
-## first, since the haunches are load-bearing for the rear silhouette.
-const LEG_SLOTS := {
-	2: [{"sx": 0.0, "front": true, "phase": 0.0}, {"sx": 0.0, "front": false, "phase": PI}],
-	3: [
-		{"sx": 0.0, "front": true, "phase": 0.0},
-		{"sx": -1.0, "front": false, "phase": PI},
-		{"sx": 1.0, "front": false, "phase": PI * 0.5}
-	],
-	4: [
-		{"sx": -1.0, "front": true, "phase": 0.0},
-		{"sx": 1.0, "front": true, "phase": PI},
-		{"sx": -1.0, "front": false, "phase": PI},
-		{"sx": 1.0, "front": false, "phase": 0.0}
-	]
-}
+## Leg placement for any count from 3 up. Legs are laid out in rows walking
+## front-to-back along the barrel, each row a left/right pair (an odd count
+## leaves one row with a single centered leg). 4 legs lands on the normal
+## quadruped stance; beyond that the extra pairs fill in along the middle
+## and the phase offsets form a travelling wave, so a 7-legged pony ripples
+## like a centipede instead of stomping in unison.
+static func _leg_slots(count: int, plan: Dictionary) -> Array:
+	var rows: int = int(ceil(count / 2.0))
+	var slots: Array = []
+	var placed := 0
+	for row in rows:
+		var t: float = 0.0 if rows <= 1 else float(row) / float(rows - 1)
+		var z: float = lerpf(plan.stance_zf, plan.stance_zh, t)
+		var x_spread: float = lerpf(plan.stance_xf, plan.stance_xh, t)
+		var splay: float = lerpf(plan.splay_f, plan.splay_h, t)
+		var remaining := count - placed
+		# Travelling wave down the body; left/right in a row are opposed so
+		# each pair still reads as a diagonal step.
+		var row_phase: float = float(row) * PI * 0.7
+		if remaining == 1:
+			slots.append({"x": 0.0, "z": z, "splay": 0.0, "phase": row_phase})
+			placed += 1
+		else:
+			slots.append({"x": -x_spread, "z": z, "splay": -splay, "phase": row_phase})
+			slots.append({"x": x_spread, "z": z, "splay": splay, "phase": row_phase + PI})
+			placed += 2
+		if placed >= count:
+			break
+	return slots
 
 static var _shared_blob_mesh: SphereMesh
 
@@ -282,17 +294,12 @@ static func build(visual: Node3D, genome: PonyGenome) -> Dictionary:
 	var leg_hips: Array[Node3D] = []
 	var leg_knees: Array[Node3D] = []
 	var leg_phase_offsets: Array[float] = []
-	var slots: Array = LEG_SLOTS[genome.leg_count]
+	var slots: Array = _leg_slots(genome.leg_count, plan)
 	for slot in slots:
-		var front: bool = slot.front
 		var hip := Node3D.new()
 		hip.name = "LegHip"
-		hip.position = Vector3(
-			slot.sx * (plan.stance_xf if front else plan.stance_xh),
-			plan.hip_y,
-			plan.stance_zf if front else plan.stance_zh
-		)
-		hip.rotation.z = slot.sx * (plan.splay_f if front else plan.splay_h)
+		hip.position = Vector3(slot.x, plan.hip_y, slot.z)
+		hip.rotation.z = slot.splay
 		body.add_child(hip)
 
 		var upper_len: float = plan.leg_len * 0.55

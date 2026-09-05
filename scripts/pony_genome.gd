@@ -41,8 +41,19 @@ static func generate_random() -> PonyGenome:
 	var g := PonyGenome.new()
 
 	g.body_plan = BODY_PLANS[randi() % BODY_PLANS.size()]
+	# Usually 4, often 3, and a long tail of extra pairs up to 7 — a
+	# 7-legged pony should feel like a rare find, not the norm.
 	var leg_r := randf()
-	g.leg_count = 2 if leg_r < 0.14 else (3 if leg_r < 0.62 else 4)
+	if leg_r < 0.20:
+		g.leg_count = 3
+	elif leg_r < 0.70:
+		g.leg_count = 4
+	elif leg_r < 0.85:
+		g.leg_count = 5
+	elif leg_r < 0.95:
+		g.leg_count = 6
+	else:
+		g.leg_count = 7
 	g.leg_type = LEG_TYPES[randi() % LEG_TYPES.size()]
 	g.tail_type = TAIL_TYPES[randi() % TAIL_TYPES.size()]
 	g.size = randf_range(0.8, 1.3)
@@ -67,12 +78,18 @@ static func generate_random() -> PonyGenome:
 		"propeller-feet": acceleration += 12.0
 		"tentacles": handling += 12.0
 		"hooves": stamina += 12.0
-	if g.leg_count == 2:
+	if g.leg_count == 3:
 		acceleration += 8.0
-		handling -= 10.0
+		handling -= 8.0
 	elif g.leg_count == 4:
 		handling += 8.0
 		stamina += 4.0
+	else:
+		# Extra pairs grip and endure but drag: more legs, more mess.
+		var extra := float(g.leg_count - 4)
+		handling += extra * 4.0
+		stamina += extra * 3.0
+		speed -= extra * 3.0
 
 	# Build flavors the stats: the draft cob carries, the colt runs, the
 	# willowy one turns.
@@ -94,7 +111,7 @@ static func generate_random() -> PonyGenome:
 	if g.gills: mutations += 1
 	if g.antigrav_horn: mutations += 1
 	wackiness += mutations * 7.0
-	if g.leg_count == 2: wackiness += 10.0
+	wackiness += absf(float(g.leg_count) - 4.0) * 7.0
 	if g.leg_type == "tentacles": wackiness += 6.0
 
 	g.stat_speed = _clamp_stat(speed)
