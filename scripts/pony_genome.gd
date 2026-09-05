@@ -8,11 +8,15 @@ extends Resource
 ## into a foal is future work, but having a real typed Resource (rather
 ## than loose variables) is what makes that tractable later.
 
+## Body plans differ in proportion — mass distribution, neck length/arch,
+## leg length, stance, tail carriage. See PonyRigBuilder.BODY_PLANS.
+const BODY_PLANS := ["ballast-cob", "slipstream-colt", "aurora-willow"]
 const LEG_TYPES := ["hooves", "tentacles", "propeller-feet", "rocket-boots"]
 const TAIL_TYPES := ["rocket", "whip", "propeller"]
 const MANE_STYLES := ["space-mane", "antenna-mane"]
 const ABILITIES := ["dash", "gravity-flip", "fart-boost", "teleport-hiccup", "magnet-hooves"]
 
+@export var body_plan: String = "ballast-cob"
 @export var leg_count: int = 3
 @export var leg_type: String = "rocket-boots"
 @export var tail_type: String = "rocket"
@@ -36,6 +40,7 @@ const ABILITIES := ["dash", "gravity-flip", "fart-boost", "teleport-hiccup", "ma
 static func generate_random() -> PonyGenome:
 	var g := PonyGenome.new()
 
+	g.body_plan = BODY_PLANS[randi() % BODY_PLANS.size()]
 	var leg_r := randf()
 	g.leg_count = 2 if leg_r < 0.14 else (3 if leg_r < 0.62 else 4)
 	g.leg_type = LEG_TYPES[randi() % LEG_TYPES.size()]
@@ -68,6 +73,19 @@ static func generate_random() -> PonyGenome:
 	elif g.leg_count == 4:
 		handling += 8.0
 		stamina += 4.0
+
+	# Build flavors the stats: the draft cob carries, the colt runs, the
+	# willowy one turns.
+	match g.body_plan:
+		"ballast-cob":
+			stamina += 14.0
+			speed -= 6.0
+		"slipstream-colt":
+			speed += 14.0
+			stamina -= 6.0
+		"aurora-willow":
+			handling += 14.0
+			acceleration -= 4.0
 	speed *= 0.85 + g.size * 0.2
 
 	var mutations := 0

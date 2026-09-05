@@ -86,6 +86,14 @@ var genome: PonyGenome = null
 var _leg_hips: Array[Node3D] = []
 var _leg_knees: Array[Node3D] = []
 
+## Head and tail get their own sway on top of the gait — the tail
+## especially, since it carries most of the silhouette from behind, which
+## is the angle a racing player actually sees.
+var _head: Node3D = null
+var _tail: Node3D = null
+var _head_pitch: float = 0.0
+var _tail_sway: float = 0.12
+
 var food_collected: int = 0
 
 var _wobble_time: float = 0.0
@@ -149,6 +157,10 @@ func build_from_genome(g: PonyGenome) -> void:
 	_leg_hips = built.leg_hips
 	_leg_knees = built.leg_knees
 	_leg_phase_offsets = built.leg_phase_offsets
+	_head = built.head
+	_tail = built.tail
+	_head_pitch = built.head_pitch
+	_tail_sway = built.tail_sway
 	var n := _leg_hips.size()
 	_hip_angle.resize(n)
 	_hip_vel.resize(n)
@@ -451,6 +463,18 @@ func _update_leg_rig(delta: float, speed: float) -> void:
 		_knee_angle[i] = kr.x
 		_knee_vel[i] = kr.y
 		_leg_knees[i].rotation.x = _knee_angle[i]
+
+	_update_head_and_tail(speed_ratio)
+
+## Head nod and tail sway riding the same gait clock. Scaled by speed so a
+## standing pony settles rather than swishing in place.
+func _update_head_and_tail(speed_ratio: float) -> void:
+	if _head != null:
+		_head.rotation.x = _head_pitch + sin(_walk_time + 0.6) * 0.06 * speed_ratio
+		_head.rotation.z = sin(_walk_time * 0.42) * 0.05 * speed_ratio
+	if _tail != null:
+		_tail.rotation.z = sin(_walk_time * 0.62) * _tail_sway * (0.3 + speed_ratio)
+		_tail.rotation.x = sin(_walk_time * 0.5 + 1.1) * _tail_sway * 0.45 * (0.3 + speed_ratio)
 
 func _update_wacky_wobble(delta: float, speed: float) -> void:
 	if visual == null:
