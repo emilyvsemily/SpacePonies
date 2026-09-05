@@ -3,10 +3,10 @@ extends RefCounted
 
 ## Procedurally builds a pony's visual rig from a PonyGenome, ported from
 ## the Look Book's buildRig()/buildLeg() (docs/index.html). Geometry is all
-## Godot primitives (Box/Cylinder/flat-shaded icosahedron) rather than a
-## fixed imported asset, since bred/generated ponies vary structurally
-## (leg count, leg type, tail type, adaptations) in a way a single static
-## mesh can't represent.
+## Godot primitives (Box/Cylinder/smooth Sphere) rather than a fixed
+## imported asset, since bred/generated ponies vary structurally (leg
+## count, leg type, tail type, adaptations) in a way a single static mesh
+## can't represent.
 
 const LEG_LAYOUTS := {
 	2: [{"x": 0.0, "z": 0.34, "phase": 0.0}, {"x": 0.0, "z": -0.34, "phase": PI}],
@@ -17,7 +17,7 @@ const LEG_LAYOUTS := {
 	]
 }
 
-static var _unit_icosahedron: ArrayMesh
+static var _shared_blob_mesh: SphereMesh
 
 ## Result: { leg_hips, leg_knees, leg_phase_offsets: Array[float],
 ## flame_outers, flame_inners (parallel arrays, null where not applicable),
@@ -69,18 +69,18 @@ static func build(visual: Node3D, genome: PonyGenome) -> Dictionary:
 	var flame_yellow := _mat(Color(1.0, 0.82, 0.4), Color(1.0, 0.82, 0.4), 0.6)
 
 	# torso
-	var torso := _icosphere(Vector3(0.82 * 1.28, 0.82 * 0.82, 0.82 * 1.05), body_main)
+	var torso := _blob(Vector3(0.82 * 1.28, 0.82 * 0.82, 0.82 * 1.05), body_main)
 	rig.add_child(torso)
-	var torso_light := _icosphere(Vector3(0.42 * 1.1, 0.42 * 0.7, 0.42 * 0.7), body_light)
+	var torso_light := _blob(Vector3(0.42 * 1.1, 0.42 * 0.7, 0.42 * 0.7), body_light)
 	torso_light.position = Vector3(0.42, 0.32, 0.42)
 	rig.add_child(torso_light)
-	var torso_dark := _icosphere(Vector3(0.46, 0.46 * 0.7, 0.46 * 0.75), body_dark)
+	var torso_dark := _blob(Vector3(0.46, 0.46 * 0.7, 0.46 * 0.75), body_dark)
 	torso_dark.position = Vector3(-0.3, -0.28, -0.32)
 	rig.add_child(torso_dark)
 
 	if genome.coat_pattern == "spotted":
 		for p in [Vector3(0.5, 0.05, 0.1), Vector3(-0.15, 0.35, 0.5), Vector3(0.1, -0.2, -0.55), Vector3(-0.45, 0.0, -0.05)]:
-			var spot := _icosphere(Vector3.ONE * (0.13 + randf() * 0.06), spot_mat)
+			var spot := _blob(Vector3.ONE * (0.13 + randf() * 0.06), spot_mat)
 			spot.position = p
 			rig.add_child(spot)
 
@@ -89,11 +89,11 @@ static func build(visual: Node3D, genome: PonyGenome) -> Dictionary:
 	head_group.name = "HeadGroup"
 	head_group.position = Vector3(0, 0.58, 0.92)
 	rig.add_child(head_group)
-	head_group.add_child(_icosphere(Vector3.ONE * 0.4, head_main))
-	var head_light_mesh := _icosphere(Vector3.ONE * 0.2, head_light)
+	head_group.add_child(_blob(Vector3.ONE * 0.4, head_main))
+	var head_light_mesh := _blob(Vector3.ONE * 0.2, head_light)
 	head_light_mesh.position = Vector3(0.18, 0.14, 0.2)
 	head_group.add_child(head_light_mesh)
-	var head_dark_mesh := _icosphere(Vector3.ONE * 0.2, head_dark)
+	var head_dark_mesh := _blob(Vector3.ONE * 0.2, head_dark)
 	head_dark_mesh.position = Vector3(-0.15, -0.1, -0.16)
 	head_group.add_child(head_dark_mesh)
 
@@ -116,7 +116,7 @@ static func build(visual: Node3D, genome: PonyGenome) -> Dictionary:
 		var horn_tip := _cone(0.028, 0.2, horn_tip_mat)
 		horn_tip.position.y = 0.42
 		horn_group.add_child(horn_tip)
-		var glow := _icosphere(Vector3.ONE * 0.075, _mat(PonyGenome.hsl_to_color(horn_hue, 0.5, 0.7)))
+		var glow := _blob(Vector3.ONE * 0.075, _mat(PonyGenome.hsl_to_color(horn_hue, 0.5, 0.7)))
 		glow.position.y = 0.52
 		horn_group.add_child(glow)
 		horn_glow = glow
@@ -135,9 +135,9 @@ static func build(visual: Node3D, genome: PonyGenome) -> Dictionary:
 	for p in eye_specs:
 		var eye := Node3D.new()
 		eye.position = Vector3(p[0], p[1], p[2])
-		var white := _icosphere(Vector3.ONE * p[3], eye_white)
+		var white := _blob(Vector3.ONE * p[3], eye_white)
 		eye.add_child(white)
-		var pupil := _icosphere(Vector3.ONE * p[4], eye_pupil)
+		var pupil := _blob(Vector3.ONE * p[4], eye_pupil)
 		pupil.position.z = p[3] * 0.7
 		eye.add_child(pupil)
 		head_group.add_child(eye)
@@ -168,7 +168,7 @@ static func build(visual: Node3D, genome: PonyGenome) -> Dictionary:
 			stalk.position = Vector3(p.x, p.y + 0.18, p.z)
 			stalk.rotation.x = -0.35
 			head_group.add_child(stalk)
-			var bead := _icosphere(Vector3.ONE * 0.05, horn_tip_mat)
+			var bead := _blob(Vector3.ONE * 0.05, horn_tip_mat)
 			bead.position = Vector3(p.x, p.y + 0.38, p.z - 0.12)
 			head_group.add_child(bead)
 
@@ -277,10 +277,10 @@ static func _build_leg(parent: Node3D, x: float, z: float, length: float, leg_ty
 	knee.name = "LegKnee"
 	knee.position.y = -upper_len
 	hip.add_child(knee)
-	knee.add_child(_icosphere(Vector3.ONE * (length * 0.085), mats.light))
+	knee.add_child(_blob(Vector3.ONE * (length * 0.085), mats.light))
 
 	if leg_type == "propeller-feet":
-		var hub := _icosphere(Vector3.ONE * (length * 0.11), mats.accent)
+		var hub := _blob(Vector3.ONE * (length * 0.11), mats.accent)
 		hub.position.y = -lower_len * 0.3
 		knee.add_child(hub)
 		var prop_group := Node3D.new()
@@ -320,7 +320,7 @@ static func _build_leg(parent: Node3D, x: float, z: float, length: float, leg_ty
 			hoof.position.y = -lower_len - length * 0.03
 			knee.add_child(hoof)
 		else:
-			var tip := _icosphere(Vector3.ONE * (length * 0.07), mats.light)
+			var tip := _blob(Vector3.ONE * (length * 0.07), mats.light)
 			tip.position.y = -lower_len
 			knee.add_child(tip)
 
@@ -377,49 +377,27 @@ static func _cylinder(top_radius: float, bottom_radius: float, height: float, ma
 static func _cone(radius: float, height: float, material: Material, segments: int = 5) -> MeshInstance3D:
 	return _cylinder(0.0, radius, height, material, segments)
 
-static func _icosphere(radius: Vector3, material: Material) -> MeshInstance3D:
+static func _blob(radius: Vector3, material: Material) -> MeshInstance3D:
 	var mi := MeshInstance3D.new()
-	mi.mesh = _get_icosahedron()
+	mi.mesh = _get_blob_mesh()
 	mi.set_surface_override_material(0, material)
 	mi.scale = radius
 	return mi
 
-## A real regular icosahedron (20 flat-shaded triangular faces), unit
-## radius, built once and reused via per-instance `scale` — the low-poly
-## "gem" look from the Look Book, since Godot has no built-in icosahedron
-## primitive.
-static func _get_icosahedron() -> ArrayMesh:
-	if _unit_icosahedron == null:
-		_unit_icosahedron = _build_icosahedron()
-	return _unit_icosahedron
-
-static func _build_icosahedron() -> ArrayMesh:
-	var t := (1.0 + sqrt(5.0)) / 2.0
-	var raw := [
-		Vector3(-1, t, 0), Vector3(1, t, 0), Vector3(-1, -t, 0), Vector3(1, -t, 0),
-		Vector3(0, -1, t), Vector3(0, 1, t), Vector3(0, -1, -t), Vector3(0, 1, -t),
-		Vector3(t, 0, -1), Vector3(t, 0, 1), Vector3(-t, 0, -1), Vector3(-t, 0, 1)
-	]
-	var verts: Array[Vector3] = []
-	for v in raw:
-		verts.append(v.normalized())
-	var faces := [
-		[0, 11, 5], [0, 5, 1], [0, 1, 7], [0, 7, 10], [0, 10, 11],
-		[1, 5, 9], [5, 11, 4], [11, 10, 2], [10, 7, 6], [7, 1, 8],
-		[3, 9, 4], [3, 4, 2], [3, 2, 6], [3, 6, 8], [3, 8, 9],
-		[4, 9, 5], [2, 4, 11], [6, 2, 10], [8, 6, 7], [9, 8, 1]
-	]
-	var st := SurfaceTool.new()
-	st.begin(Mesh.PRIMITIVE_TRIANGLES)
-	for f in faces:
-		var a: Vector3 = verts[f[0]]
-		var b: Vector3 = verts[f[1]]
-		var c: Vector3 = verts[f[2]]
-		var normal := (b - a).cross(c - a).normalized()
-		st.set_normal(normal)
-		st.add_vertex(a)
-		st.set_normal(normal)
-		st.add_vertex(b)
-		st.set_normal(normal)
-		st.add_vertex(c)
-	return st.commit()
+## A smooth-shaded sphere, unit radius, reused via per-instance `scale`.
+## Previously a hand-rolled flat-shaded icosahedron (20 big triangular
+## faces) for a low-poly "gem" look — but flat shading means each face's
+## color depends entirely on its own angle to the scene's one directional
+## light, so with only 20 faces most of them face away from that light and
+## render near-black almost regardless of the material's actual color. A
+## smooth sphere blends normals continuously instead, so the coat color
+## reads evenly and correctly reflects the genome's hue everywhere.
+static func _get_blob_mesh() -> SphereMesh:
+	if _shared_blob_mesh == null:
+		var s := SphereMesh.new()
+		s.radius = 1.0
+		s.height = 2.0
+		s.radial_segments = 14
+		s.rings = 8
+		_shared_blob_mesh = s
+	return _shared_blob_mesh
