@@ -227,11 +227,11 @@ func _get_horn_trail_mesh() -> SphereMesh:
 	return _shared_horn_trail_mesh
 
 ## The imported rig's materials read as flat/washed-out — bump shininess
-## uniformly across every surface (lower roughness, more metallic, a
-## glossy clearcoat) rather than hand-tuning each of the ~16 materials.
-## Mutates the shared imported Material resources directly, so this only
-## needs to actually take effect once, but re-running per pony instance is
-## harmless (idempotent).
+## uniformly across every surface (lower roughness, a glossy clearcoat)
+## rather than hand-tuning each of the ~16 materials. Mutates the shared
+## imported Material resources directly, so this only needs to actually
+## take effect once, but re-running per pony instance is harmless
+## (idempotent).
 func _boost_rig_shininess() -> void:
 	var rig := get_node_or_null("Visual/RigInstance/PonyRig")
 	if rig != null:
@@ -245,7 +245,14 @@ func _boost_shininess_recursive(node: Node) -> void:
 				var mat := mesh.surface_get_material(i)
 				if mat is StandardMaterial3D:
 					mat.roughness = clampf(mat.roughness * 0.4, 0.05, 1.0)
-					mat.metallic = clampf(mat.metallic + 0.35, 0.0, 1.0)
+					# A metallic surface has almost no diffuse albedo and
+					# relies on environment reflections to show any color —
+					# with no ReflectionProbe in the scene, the earlier
+					# +0.35 boost made every pony read as near-black
+					# regardless of its actual color. Barely nudge it and
+					# get the shine from clearcoat + low roughness instead,
+					# which stays dielectric and keeps the base color intact.
+					mat.metallic = clampf(mat.metallic + 0.06, 0.0, 1.0)
 					mat.clearcoat_enabled = true
 					mat.clearcoat = 0.5
 	for child in node.get_children():
