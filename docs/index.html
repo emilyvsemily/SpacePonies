@@ -1426,6 +1426,223 @@
     </article>
 
   </section>
+
+  <!-- ====================================================================
+       ROUND THREE — three more rounded riffs, but varied by FORM (mass
+       distribution, neck arch, leg length, stance, rump shape, tail volume)
+       rather than by surface material, and shown as live geometry from the
+       angle the player actually races at: behind. One shared WebGL context
+       renders all three abreast so the rear silhouettes can be compared
+       directly instead of card-to-card. Independently scoped (own IIFE,
+       own "rear-" element ids) like the two live sections above.
+       ==================================================================== -->
+  <style>
+    .rearline-wrap{padding-bottom:2.5rem;}
+    .rearline-card{
+      background:var(--surface);
+      border:1px solid var(--line);
+      border-radius:26px;
+      padding:clamp(1.5rem,3vw,2.25rem);
+      box-shadow:var(--shadow);
+      display:flex;
+      flex-direction:column;
+      gap:1.15rem;
+    }
+    .rearline-head{display:flex; flex-direction:column; gap:.55rem;}
+    .rearline-head .blurb{max-width:76ch;}
+    .rearline-viewport{
+      position:relative;
+      border-radius:18px;
+      overflow:hidden;
+      aspect-ratio:16/7;
+      background:linear-gradient(180deg,#120d28 0%,#231b49 62%,#170f33 100%);
+    }
+    .rearline-viewport canvas{width:100%; height:100%; display:block; touch-action:none; cursor:grab;}
+    .rearline-viewport canvas:active{cursor:grabbing;}
+    .rearline-controls{display:flex; flex-wrap:wrap; align-items:center; gap:.55rem;}
+    .rearline-controls .ctl-label{
+      font-family:'Space Mono',monospace; font-size:.66rem; letter-spacing:.12em;
+      text-transform:uppercase; color:var(--text-faint); margin-right:.3rem;
+    }
+    .rearline-strip{
+      display:grid;
+      grid-template-columns:repeat(3,minmax(0,1fr));
+      gap:clamp(1.1rem,2.5vw,1.75rem);
+      border-top:1px dashed var(--line-soft);
+      padding-top:1.5rem;
+    }
+    .rearline-riff{display:flex; flex-direction:column; gap:.65rem;}
+    .lane-row{display:flex; align-items:center; gap:.6rem;}
+    .lane-tag{
+      font-family:'Space Mono',monospace; font-size:.66rem; letter-spacing:.12em;
+      text-transform:uppercase; color:var(--text-faint);
+    }
+    .lane-swatch{
+      width:32px; height:8px; border-radius:100px;
+      background:var(--sw);
+      box-shadow:0 0 12px -2px var(--sw);
+      flex:none;
+    }
+    .rearline-riff .direction-name{font-size:clamp(1.15rem,2vw,1.38rem);}
+    .spec-line{
+      font-family:'Space Mono',monospace; font-size:.67rem; line-height:1.75;
+      color:var(--text-faint); letter-spacing:.01em; margin:0;
+      font-variant-numeric:tabular-nums;
+    }
+    .rearline-riff .blurb{font-size:.9rem; max-width:none;}
+    .rear-read{
+      margin-top:auto;
+      border-top:1px dashed var(--line-soft);
+      padding-top:.8rem;
+      display:flex; flex-direction:column; gap:.35rem;
+    }
+    .rear-read-label{
+      font-family:'Space Mono',monospace; font-size:.64rem; letter-spacing:.12em;
+      text-transform:uppercase; color:var(--accent-2);
+    }
+    .rear-read p{margin:0; color:var(--text-dim); font-size:.88rem; line-height:1.62;}
+    .direction-name .accent-j{color:#f0b070;}
+    .direction-name .accent-k{color:#6fe3c4;}
+    .direction-name .accent-l{color:#c7aeff;}
+
+    @media (max-width:860px){
+      .rearline-strip{grid-template-columns:1fr;}
+      .rearline-viewport{aspect-ratio:5/4;}
+      .rear-read{margin-top:0;}
+    }
+  </style>
+
+  <div class="section-intro">
+    <span class="eyebrow">Art direction, round three</span>
+    <h2>Same roundness, three different <span class="hl">bodies</span> — seen from where you'll actually see them</h2>
+    <p>Comet Clay, Vinyl Voyager and Starstitch were one silhouette wearing three surfaces. These three keep the
+    rounded, soft direction and the anti-pig cues — long tapered muzzle, real jaw, an actual neck, slim tapered
+    legs — but change the <strong>skeleton</strong> instead of the finish: where the mass sits, how long the neck
+    is and how hard it arches, how tall and how close the legs run, how wide the rump is, and how much visual
+    weight the tail carries. And because a racer spends the whole race staring at the back of their own pony,
+    they're shown live, abreast, and pointed away from you — one WebGL context, three ponies, the rear read
+    front and center. Drag to orbit; the camera presets swing round to the other angles.</p>
+  </div>
+
+  <section class="rearline-wrap">
+    <div class="rearline-card">
+      <div class="rearline-head">
+        <span class="direction-tag">Live WebGL prototype · the view from the starting grid</span>
+        <h3 class="direction-name">Three builds, <span class="accent-a">dead astern</span></h3>
+        <span class="badge">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 21V7"/><path d="M7 12l5-5 5 5"/><path d="M4 3h16"/></svg>
+          one proportion vector, three ponies — same builder, different numbers
+        </span>
+        <p class="blurb">
+          All three are built by one parameterised routine — the same primitives
+          <code>pony_rig_builder.gd</code> already uses (scaled spheres, tapered cylinders, a two-bone hip→knee
+          leg) with nothing but the numbers changed. <strong>Nothing here needs new geometry code to ship</strong>;
+          it needs a proportion block on the genome. They're trotting slightly out of phase, the way a field does,
+          and lanes 1–3 read left to right from astern — the same order as the cards below.
+        </p>
+      </div>
+
+      <div class="rearline-viewport" id="rear-viewport">
+        <canvas id="rear-canvas" aria-label="Interactive 3D lineup of three rounded space ponies standing abreast and facing away from the viewer, seen from a rear three-quarter angle as if racing away down a track. Left to right: a stocky barrel-chested draft build with a wide rump and a heavy low tail, a lean long-legged sprinter with a narrow body and a high flagged tail, and a tall willowy build with a long arched neck visible above its rump and a thin trailing tail. Drag to orbit the camera."></canvas>
+        <div class="engine-hint" id="rear-hint">drag to orbit</div>
+      </div>
+
+      <div class="rearline-controls">
+        <span class="ctl-label">Camera</span>
+        <button type="button" class="engine-btn" id="rear-cam-astern">Dead Astern</button>
+        <button type="button" class="engine-btn active" id="rear-cam-quarter">Rear Three-Quarter</button>
+        <button type="button" class="engine-btn" id="rear-cam-broadside">Broadside</button>
+        <button type="button" class="engine-btn" id="rear-cam-headon">Head-On</button>
+      </div>
+      <p class="engine-caption" id="rear-caption">Rear three-quarter — the default race camera. Rump, tail and hind-leg splay do nearly all the identifying work from here.</p>
+
+      <div class="rearline-strip">
+
+        <!-- ================= LANE 1: BALLAST COB ================= -->
+        <article class="rearline-riff">
+          <div class="lane-row">
+            <span class="lane-tag">Lane 1</span>
+            <span class="lane-swatch" style="--sw:#d98f4e"></span>
+          </div>
+          <h3 class="direction-name"><span class="accent-j">Ballast Cob</span></h3>
+          <p class="spec-line">leg 1.10 · barrel 0.66w · rump 0.84w · neck 0.72 · tail ⌀0.20</p>
+          <p class="blurb">
+            A stocky draft build: deep barrel, heavy shoulder, short thick legs on a wide stance, and a short
+            crested neck that arches hard over a small distance. It is the only one of the three that is
+            <strong>wider at the hip than at the shoulder</strong> — the mass is packed low and back, which is
+            also why it looks slow and reliable rather than fast, a real thing to encode in a racer's stat spread.
+          </p>
+          <div class="rear-read">
+            <span class="rear-read-label">From behind</span>
+            <p>
+              The rump <em>is</em> the pony. Two big haunch domes with a soft valley between them fill the frame,
+              wider than anything ahead of them, so the shoulders vanish behind the hips and the low-carried head
+              barely clears the rump line — a small pale nub a long way forward, useless as an identifier at race
+              distance. The tail hangs low and thick in that valley, a heavy curtain carrying roughly a third of
+              the visual mass and the only thing breaking the rump into a readable shape. The legs plant well
+              outside the body line and splay outward, so from dead astern you read four distinct posts, not a blur.
+            </p>
+          </div>
+        </article>
+
+        <!-- ================= LANE 2: SLIPSTREAM COLT ================= -->
+        <article class="rearline-riff">
+          <div class="lane-row">
+            <span class="lane-tag">Lane 2</span>
+            <span class="lane-swatch" style="--sw:#5fd6b6"></span>
+          </div>
+          <h3 class="direction-name"><span class="accent-k">Slipstream Colt</span></h3>
+          <p class="spec-line">leg 1.62 · barrel 0.40w · rump 0.54w · neck 1.02 · tail ⌀0.13</p>
+          <p class="blurb">
+            Lean and leggy: a narrow slab-sided chest, a hard tuck up behind the ribs, legs half again as long as
+            the Cob's and set close together, and a long low neck that reaches forward instead of arching up.
+            The mane is clipped short. <strong>It is nearly twice as tall as it is wide</strong>, which is the
+            whole silhouette in one number.
+          </p>
+          <div class="rear-read">
+            <span class="rear-read-label">From behind</span>
+            <p>
+              Negative space does the identifying. It's narrow enough that you see track <em>through</em> it —
+              daylight under the barrel and between the legs, which the other two never give you. The haunches
+              are two small high knobs sitting above the barrel line rather than beside it. The tail is set high
+              and flags up and back, so it streams <em>above</em> the silhouette instead of covering the rump —
+              a banner, not a curtain, and it's what you'll actually pick this pony out by. Legs track close and
+              near-vertical, almost single-file at speed. The head is out there, but the neck reaches so far
+              forward that from astern it's a distant speck past the shoulders.
+            </p>
+          </div>
+        </article>
+
+        <!-- ================= LANE 3: AURORA WILLOW ================= -->
+        <article class="rearline-riff">
+          <div class="lane-row">
+            <span class="lane-tag">Lane 3</span>
+            <span class="lane-swatch" style="--sw:#b79bf0"></span>
+          </div>
+          <h3 class="direction-name"><span class="accent-l">Aurora Willow</span></h3>
+          <p class="spec-line">leg 1.75 · barrel 0.44w · rump 0.58w · neck 1.45 · tail ⌀0.10</p>
+          <p class="blurb">
+            Tall and willowy: a short back, high withers, the longest and slimmest legs of the three converging
+            slightly under the body, and a very long neck that arches up and folds the head back over itself.
+            <strong>Its neck is longer than its back</strong> — an extreme proportion the current rig can't
+            express at all, and the clearest argument for putting neck length in the genome.
+          </p>
+          <div class="rear-read">
+            <span class="rear-read-label">From behind</span>
+            <p>
+              The only one of the three whose <em>head</em> is part of the rear silhouette. The neck arches so
+              far above a small, narrow rump that from astern you're looking at the crest, the mane running down
+              it, and the poll — the head is the identifying feature even from behind, which no other build on
+              this page manages. The tail is a thin ribbon reaching almost to the fetlocks, swinging across the
+              hind legs, so it reads as motion rather than mass. The rump is doing the least work here of any
+              of the three.
+            </p>
+          </div>
+        </article>
+
+      </div>
+    </div>
+  </section>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -3558,6 +3775,512 @@
     fallback.textContent = 'Live 3D preview couldn\'t start in this browser. Try a recent Chrome, Firefox, Safari or Edge with WebGL enabled.';
     viewport.appendChild(fallback);
     if (window.console) console.error('Godot-parity live rig failed to init:', err);
+  }
+})();
+</script>
+<!-- ====================================================================
+     ROUND THREE — "three builds, dead astern". One shared WebGL context
+     renders three ponies abreast, facing away from the camera, so the
+     rear silhouette (the one a racer actually stares at) can be compared
+     across three different BODY PLANS rather than three surface finishes.
+
+     Independently scoped: own IIFE, own "rear-" element ids, no globals
+     touched. Geometry is deliberately the same primitive vocabulary
+     pony_rig_builder.gd already uses — scaled spheres, tapered cylinders,
+     a two-bone hip->knee leg — driven entirely by a per-pony proportion
+     block, so porting a build back into Godot is a numbers change, not a
+     new mesh pipeline. Head faces +Z, matching the Look Book convention.
+     ==================================================================== -->
+<script>
+(function(){
+  var viewport = document.getElementById('rear-viewport');
+  var canvas = document.getElementById('rear-canvas');
+  var hint = document.getElementById('rear-hint');
+  var caption = document.getElementById('rear-caption');
+
+  if (!window.THREE || !canvas || !viewport) { return; }
+
+  // ---------- the three proportion blocks ----------
+  // Everything that differs between these ponies lives here. Nothing below
+  // this object knows which pony it is building.
+  var SPECS = [
+    {
+      name: 'Ballast Cob', laneX: 3.0,
+      coat: 0xd98f4e, coatDark: 0xb06c33, mane: 0x6d4529, hoof: 0x2b2038,
+      barrelW: 0.66, barrelH: 0.62, barrelL: 1.05,
+      chestW: 0.70, chestH: 0.62, chestD: 0.52, chestY: -0.02, chestZ: 0.70,
+      bellyW: 0.62, bellyH: 0.46, bellyD: 0.86, bellyY: -0.20, bellyZ: -0.02,
+      croupW: 0.60, croupH: 0.42, croupD: 0.50, croupY: 0.22, croupZ: -0.62,
+      haunchW: 0.44, haunchH: 0.48, haunchD: 0.46, haunchX: 0.40, haunchY: 0.00, haunchZ: -0.70,
+      neck0Y: 0.40, neck0Z: 0.72, neckCY: 0.86, neckCZ: 0.94, neck1Y: 0.70, neck1Z: 1.30,
+      neckR0: 0.34, neckR1: 0.22, neckSegs: 7, neckWide: 1.00,
+      maneOff: 0.72, maneR: 0.80, forelockR: 0.13,
+      headPitch: -0.48,
+      skullW: 0.25, skullH: 0.27, skullD: 0.29,
+      jawW: 0.23, jawH: 0.17, jawD: 0.22, jawY: -0.13, jawZ: 0.12,
+      muzzleLen: 0.44, muzzleR0: 0.20, muzzleR1: 0.155, muzzleY: -0.07,
+      earR: 0.075, earH: 0.20, earX: 0.14, earY: 0.22, earZ: -0.06, earTilt: 0.30,
+      eyeR: 0.062, eyeX: 0.21, eyeY: 0.05, eyeZ: 0.10,
+      legLen: 1.10, legRTop: 0.155, legRMid: 0.115, legRAnkle: 0.095,
+      hoofR: 0.14, hoofH: 0.13,
+      stanceXF: 0.50, stanceXH: 0.56, stanceZF: 0.72, stanceZH: -0.70,
+      hipY: -0.14, splayF: 0.06, splayH: 0.11,
+      tailY: 0.36, tailZ: -1.00, tailCarry: 0.30, tailLen: 1.05,
+      tailR0: 0.21, tailR1: 0.10, tailWide: 1.05, tailDroop: 0.075, tailPlume: true, tailSway: 0.11,
+      cadence: 5.6, stride: 0.30, bob: 0.055, phase: 0.0
+    },
+    {
+      name: 'Slipstream Colt', laneX: 0.0,
+      coat: 0x5fd6b6, coatDark: 0x3aa78c, mane: 0x2f9c84, hoof: 0x2b2038,
+      barrelW: 0.40, barrelH: 0.46, barrelL: 1.12,
+      chestW: 0.44, chestH: 0.56, chestD: 0.52, chestY: 0.02, chestZ: 0.76,
+      bellyW: 0.34, bellyH: 0.28, bellyD: 0.60, bellyY: -0.20, bellyZ: -0.14,
+      croupW: 0.36, croupH: 0.32, croupD: 0.46, croupY: 0.28, croupZ: -0.70,
+      haunchW: 0.27, haunchH: 0.42, haunchD: 0.44, haunchX: 0.21, haunchY: 0.08, haunchZ: -0.76,
+      neck0Y: 0.36, neck0Z: 0.84, neckCY: 0.70, neckCZ: 1.32, neck1Y: 0.76, neck1Z: 1.72,
+      neckR0: 0.24, neckR1: 0.145, neckSegs: 8, neckWide: 0.92,
+      maneOff: 0.34, maneR: 0.50, forelockR: 0.07,
+      headPitch: -0.12,
+      skullW: 0.185, skullH: 0.205, skullD: 0.235,
+      jawW: 0.17, jawH: 0.13, jawD: 0.19, jawY: -0.11, jawZ: 0.10,
+      muzzleLen: 0.52, muzzleR0: 0.148, muzzleR1: 0.10, muzzleY: -0.055,
+      earR: 0.055, earH: 0.19, earX: 0.10, earY: 0.17, earZ: -0.05, earTilt: 0.24,
+      eyeR: 0.048, eyeX: 0.16, eyeY: 0.04, eyeZ: 0.08,
+      legLen: 1.62, legRTop: 0.115, legRMid: 0.082, legRAnkle: 0.062,
+      hoofR: 0.095, hoofH: 0.10,
+      stanceXF: 0.30, stanceXH: 0.30, stanceZF: 0.80, stanceZH: -0.82,
+      hipY: -0.10, splayF: -0.01, splayH: 0.00,
+      tailY: 0.56, tailZ: -1.06, tailCarry: 2.28, tailLen: 1.62,
+      tailR0: 0.14, tailR1: 0.055, tailWide: 0.90, tailDroop: 0.012, tailPlume: false, tailSway: 0.16,
+      cadence: 6.6, stride: 0.40, bob: 0.075, phase: 1.9
+    },
+    {
+      name: 'Aurora Willow', laneX: -3.0,
+      coat: 0xb79bf0, coatDark: 0x8d70cf, mane: 0xefe2ff, hoof: 0x2b2038,
+      barrelW: 0.44, barrelH: 0.50, barrelL: 0.90,
+      chestW: 0.46, chestH: 0.54, chestD: 0.46, chestY: 0.00, chestZ: 0.60,
+      bellyW: 0.38, bellyH: 0.34, bellyD: 0.68, bellyY: -0.18, bellyZ: -0.06,
+      croupW: 0.38, croupH: 0.34, croupD: 0.42, croupY: 0.26, croupZ: -0.56,
+      haunchW: 0.32, haunchH: 0.44, haunchD: 0.40, haunchX: 0.26, haunchY: 0.04, haunchZ: -0.62,
+      neck0Y: 0.42, neck0Z: 0.62, neckCY: 1.30, neckCZ: 1.16, neck1Y: 1.58, neck1Z: 0.96,
+      neckR0: 0.26, neckR1: 0.135, neckSegs: 10, neckWide: 0.95,
+      maneOff: 1.05, maneR: 0.62, forelockR: 0.08,
+      headPitch: -0.95,
+      skullW: 0.175, skullH: 0.20, skullD: 0.22,
+      jawW: 0.16, jawH: 0.13, jawD: 0.18, jawY: -0.10, jawZ: 0.09,
+      muzzleLen: 0.46, muzzleR0: 0.138, muzzleR1: 0.098, muzzleY: -0.05,
+      earR: 0.05, earH: 0.22, earX: 0.095, earY: 0.17, earZ: -0.05, earTilt: 0.20,
+      eyeR: 0.046, eyeX: 0.15, eyeY: 0.035, eyeZ: 0.075,
+      legLen: 1.75, legRTop: 0.105, legRMid: 0.075, legRAnkle: 0.055,
+      hoofR: 0.088, hoofH: 0.095,
+      stanceXF: 0.26, stanceXH: 0.28, stanceZF: 0.66, stanceZH: -0.64,
+      hipY: -0.10, splayF: -0.035, splayH: -0.03,
+      tailY: 0.42, tailZ: -0.86, tailCarry: 0.62, tailLen: 1.78,
+      tailR0: 0.115, tailR1: 0.042, tailWide: 0.85, tailDroop: 0.055, tailPlume: false, tailSway: 0.20,
+      cadence: 5.0, stride: 0.34, bob: 0.06, phase: 3.6
+    }
+  ];
+
+  // ---------- camera presets ----------
+  // theta is measured so that cos(theta) scales +Z: theta = PI puts the
+  // camera on the -Z side, i.e. directly behind a pony whose head faces +Z.
+  var CAM_PRESETS = {
+    astern:    { theta: Math.PI,          phi: 1.30, radius: 7.9,
+      note: 'Dead astern — the honest race view. Rump width, tail carriage and how far the hind legs splay are the entire read; nothing forward of the hips is doing any work.' },
+    quarter:   { theta: Math.PI * 0.855,  phi: 1.235, radius: 8.2,
+      note: 'Rear three-quarter — the default race camera. Rump, tail and hind-leg splay do nearly all the identifying work from here.' },
+    broadside: { theta: Math.PI * 0.5,    phi: 1.30, radius: 8.6,
+      note: 'Broadside — the view a look book usually shows and a player almost never sees. Useful for checking the neck arch and the muzzle taper that keep these equine rather than porcine.' },
+    headon:    { theta: 0.0,              phi: 1.24, radius: 8.6,
+      note: 'Head-on — only the pony you just overtook gets this angle. Chest width and how the front legs track are what separate the three from here.' }
+  };
+
+  var PRESET_BUTTONS = {
+    astern: 'rear-cam-astern',
+    quarter: 'rear-cam-quarter',
+    broadside: 'rear-cam-broadside',
+    headon: 'rear-cam-headon'
+  };
+
+  try {
+
+    var reduceMotion = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+
+    // ---------- renderer / scene / camera ----------
+    var renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+
+    var scene = new THREE.Scene();
+    scene.fog = new THREE.Fog(0x1c1438, 13, 30);
+    var camera = new THREE.PerspectiveCamera(34, 2.28, 0.1, 120);
+    var camTarget = new THREE.Vector3(0, 1.45, 0);
+
+    var startPreset = CAM_PRESETS.quarter;
+    var camTheta = startPreset.theta, camPhi = startPreset.phi, camRadius = startPreset.radius;
+    var wantTheta = camTheta, wantPhi = camPhi, wantRadius = camRadius;
+
+    function resize(){
+      var w = viewport.clientWidth, h = viewport.clientHeight;
+      if (w < 2 || h < 2) return;
+      renderer.setSize(w, h, false);
+      camera.aspect = w / h;
+      camera.updateProjectionMatrix();
+    }
+    resize();
+    window.addEventListener('resize', resize);
+    if (window.ResizeObserver) { new ResizeObserver(resize).observe(viewport); }
+
+    function updateCamera(){
+      camPhi = Math.max(0.3, Math.min(Math.PI - 0.3, camPhi));
+      camera.position.set(
+        camTarget.x + camRadius * Math.sin(camPhi) * Math.sin(camTheta),
+        camTarget.y + camRadius * Math.cos(camPhi),
+        camTarget.z + camRadius * Math.sin(camPhi) * Math.cos(camTheta)
+      );
+      camera.lookAt(camTarget);
+    }
+    updateCamera();
+
+    // ---------- lights ----------
+    // Key comes from above and behind so the haunches and croup get the
+    // shading — the rear read is the subject here, so it gets the light.
+    scene.add(new THREE.AmbientLight(0x4a4470, 0.72));
+    var key = new THREE.DirectionalLight(0xfff1de, 1.05);
+    key.position.set(3.5, 6, -3.5);
+    scene.add(key);
+    var rim = new THREE.DirectionalLight(0x6fe3c4, 0.5);
+    rim.position.set(-5, 2.5, 5);
+    scene.add(rim);
+    var fillWarm = new THREE.DirectionalLight(0xff9a56, 0.3);
+    fillWarm.position.set(4, -1.5, 2.5);
+    scene.add(fillWarm);
+
+    // ---------- track ----------
+    var grid = new THREE.GridHelper(60, 30, 0x6b5aa8, 0x372c63);
+    grid.material.transparent = true;
+    grid.material.opacity = 0.5;
+    grid.position.y = 0.005;
+    scene.add(grid);
+    var GRID_CELL = 2;
+
+    (function stars(){
+      var n = 180, pos = new Float32Array(n * 3);
+      for (var i = 0; i < n; i++){
+        var r = 16 + Math.random() * 10;
+        var a = Math.random() * Math.PI * 2;
+        var b = (Math.random() - 0.2) * Math.PI * 0.5;
+        pos[i*3] = Math.cos(a) * Math.cos(b) * r;
+        pos[i*3+1] = 2 + Math.abs(Math.sin(b)) * r * 0.7;
+        pos[i*3+2] = Math.sin(a) * Math.cos(b) * r;
+      }
+      var g = new THREE.BufferGeometry();
+      g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+      var m = new THREE.PointsMaterial({ color: 0xd8cfff, size: 0.1, transparent: true, opacity: 0.6, sizeAttenuation: true, fog: false });
+      scene.add(new THREE.Points(g, m));
+    })();
+
+    // ---------- shared geometry + materials ----------
+    // One sphere reused at every scale, exactly like pony_rig_builder.gd's
+    // _get_blob_mesh(): rounded is the art direction, so everything soft is
+    // an ellipsoid and everything limb-like is a tapered cylinder.
+    var BLOB = new THREE.SphereGeometry(1, 20, 14);
+
+    function pmat(hex, extra){
+      return new THREE.MeshPhysicalMaterial(Object.assign({
+        color: hex, roughness: 0.36, metalness: 0.06,
+        clearcoat: 0.45, clearcoatRoughness: 0.35
+      }, extra || {}));
+    }
+
+    function blob(material, sx, sy, sz, x, y, z){
+      var m = new THREE.Mesh(BLOB, material);
+      m.scale.set(sx, sy, sz);
+      m.position.set(x || 0, y || 0, z || 0);
+      return m;
+    }
+
+    function taper(material, rTop, rBottom, h, seg){
+      return new THREE.Mesh(new THREE.CylinderGeometry(rTop, rBottom, h, seg || 14, 1, false), material);
+    }
+
+    function qbez(p0y, p0z, p1y, p1z, p2y, p2z, t){
+      var it = 1 - t;
+      return {
+        y: it*it*p0y + 2*it*t*p1y + t*t*p2y,
+        z: it*it*p0z + 2*it*t*p1z + t*t*p2z
+      };
+    }
+
+    // ---------- the builder ----------
+    function buildPony(S){
+      var coat = pmat(S.coat);
+      var coatDark = pmat(S.coatDark);
+      var maneMat = pmat(S.mane, { roughness: 0.5, clearcoat: 0.2 });
+      var hoofMat = pmat(S.hoof, { roughness: 0.45, clearcoat: 0.25 });
+      var eyeWhite = pmat(0xf3eefb, { roughness: 0.2, clearcoat: 0.8 });
+      var eyePupil = pmat(0x241c40, { roughness: 0.15, clearcoat: 0.9 });
+
+      var root = new THREE.Group();
+      root.position.set(S.laneX, S.legLen - S.hipY, 0);
+
+      var body = new THREE.Group();
+      root.add(body);
+
+      // torso: barrel, chest, belly, croup, then the two haunch domes that
+      // ARE the rear silhouette
+      body.add(blob(coat, S.barrelW, S.barrelH, S.barrelL, 0, 0, 0));
+      body.add(blob(coat, S.chestW, S.chestH, S.chestD, 0, S.chestY, S.chestZ));
+      body.add(blob(coatDark, S.bellyW, S.bellyH, S.bellyD, 0, S.bellyY, S.bellyZ));
+      body.add(blob(coat, S.croupW, S.croupH, S.croupD, 0, S.croupY, S.croupZ));
+      body.add(blob(coat, S.haunchW, S.haunchH, S.haunchD, -S.haunchX, S.haunchY, S.haunchZ));
+      body.add(blob(coat, S.haunchW, S.haunchH, S.haunchD,  S.haunchX, S.haunchY, S.haunchZ));
+
+      // neck: ellipsoids along a quadratic arc, with a mane crest riding the
+      // outside of the curve (up-and-back) so it stays visible from astern
+      var i, t, p, r;
+      for (i = 0; i < S.neckSegs; i++){
+        t = i / (S.neckSegs - 1);
+        p = qbez(S.neck0Y, S.neck0Z, S.neckCY, S.neckCZ, S.neck1Y, S.neck1Z, t);
+        r = S.neckR0 + (S.neckR1 - S.neckR0) * t;
+        body.add(blob(coat, r * S.neckWide, r * 1.06, r, 0, p.y, p.z));
+      }
+      // Mane rides the outside of the neck arc (up-and-back), sampled dense
+      // enough that the blobs fuse into a crest instead of a bead chain.
+      var maneSteps = S.neckSegs * 4;
+      for (i = 0; i <= maneSteps; i++){
+        t = i / maneSteps;
+        p = qbez(S.neck0Y, S.neck0Z, S.neckCY, S.neckCZ, S.neck1Y, S.neck1Z, t);
+        r = S.neckR0 + (S.neckR1 - S.neckR0) * t;
+        var mr = r * S.maneR;
+        body.add(blob(maneMat, mr * 0.8, mr * 1.1, mr,
+          0, p.y + r * S.maneOff * 0.52, p.z - r * S.maneOff * 0.88));
+      }
+
+      // head — the anti-pig kit: a long tapered muzzle, a real jaw/cheek,
+      // laterally-set eyes, pricked ears
+      var head = new THREE.Group();
+      head.position.set(0, S.neck1Y, S.neck1Z);
+      head.rotation.x = S.headPitch;
+      body.add(head);
+
+      head.add(blob(coat, S.skullW, S.skullH, S.skullD, 0, 0, 0));
+      head.add(blob(coat, S.jawW, S.jawH, S.jawD, 0, S.jawY, S.jawZ));
+
+      var muzzle = taper(coat, S.muzzleR1, S.muzzleR0, S.muzzleLen, 16);
+      muzzle.rotation.x = Math.PI / 2;
+      muzzle.position.set(0, S.muzzleY, S.skullD * 0.42 + S.muzzleLen * 0.5);
+      head.add(muzzle);
+      head.add(blob(coat, S.muzzleR1 * 1.06, S.muzzleR1 * 1.02, S.muzzleR1 * 0.85,
+        0, S.muzzleY, S.skullD * 0.42 + S.muzzleLen));
+      head.add(blob(coatDark, S.muzzleR1 * 0.9, S.muzzleR1 * 0.55, S.muzzleR1 * 0.6,
+        0, S.muzzleY - S.muzzleR1 * 0.4, S.skullD * 0.42 + S.muzzleLen * 0.92));
+
+      [-1, 1].forEach(function(side){
+        var ear = taper(coat, 0.004, S.earR, S.earH, 10);
+        ear.position.set(side * S.earX, S.earY, S.earZ);
+        ear.rotation.z = -side * S.earTilt;
+        ear.rotation.x = -0.18;
+        head.add(ear);
+
+        var eye = new THREE.Group();
+        eye.position.set(side * S.eyeX, S.eyeY, S.eyeZ);
+        eye.add(blob(eyeWhite, S.eyeR, S.eyeR, S.eyeR, 0, 0, 0));
+        eye.add(blob(eyePupil, S.eyeR * 0.6, S.eyeR * 0.6, S.eyeR * 0.6,
+          side * S.eyeR * 0.55, 0, S.eyeR * 0.5));
+        head.add(eye);
+      });
+
+      if (S.forelockR > 0){
+        head.add(blob(maneMat, S.forelockR * 1.2, S.forelockR, S.forelockR,
+          0, S.skullH * 0.72, -S.skullD * 0.28));
+      }
+
+      // legs: two-bone hip -> knee, the same hierarchy the game builds
+      var legs = [];
+      [
+        { sx: -1, sz:  1, ph: 0 },
+        { sx:  1, sz:  1, ph: Math.PI },
+        { sx: -1, sz: -1, ph: Math.PI },
+        { sx:  1, sz: -1, ph: 0 }
+      ].forEach(function(L){
+        var front = L.sz > 0;
+        var hip = new THREE.Group();
+        hip.position.set(
+          L.sx * (front ? S.stanceXF : S.stanceXH),
+          S.hipY,
+          front ? S.stanceZF : S.stanceZH
+        );
+        hip.rotation.z = L.sx * (front ? S.splayF : S.splayH);
+        body.add(hip);
+
+        var upperLen = S.legLen * 0.55, lowerLen = S.legLen * 0.45;
+        var upper = taper(coat, S.legRMid, S.legRTop, upperLen, 12);
+        upper.position.y = -upperLen / 2;
+        hip.add(upper);
+
+        var knee = new THREE.Group();
+        knee.position.y = -upperLen;
+        hip.add(knee);
+        knee.add(blob(coat, S.legRMid * 1.22, S.legRMid * 1.22, S.legRMid * 1.22, 0, 0, 0));
+
+        var lower = taper(coatDark, S.legRAnkle, S.legRMid * 0.94, lowerLen, 12);
+        lower.position.y = -lowerLen / 2;
+        knee.add(lower);
+
+        var hoofMesh = new THREE.Mesh(
+          new THREE.CylinderGeometry(S.hoofR, S.hoofR * 0.9, S.hoofH, 12), hoofMat);
+        hoofMesh.position.y = -lowerLen - S.hoofH * 0.35;
+        knee.add(hoofMesh);
+
+        legs.push({ hip: hip, knee: knee, ph: L.ph, front: front });
+      });
+
+      // tail: a chain of blobs walking along a carriage direction, drooping
+      // as it goes. tailCarry 0 hangs straight down, PI/2 points straight
+      // back, above that it flags up — which is the whole difference between
+      // a curtain over the rump and a banner above it.
+      var tail = new THREE.Group();
+      tail.position.set(0, S.tailY, S.tailZ);
+      body.add(tail);
+      tail.add(blob(coat, S.tailR0 * 0.95, S.tailR0 * 0.95, S.tailR0 * 0.95, 0, 0, 0));
+
+      // Step length tracks the current radius so a thin tail gets more, closer
+      // blobs and a thick one gets fewer, fatter ones — both read as one solid
+      // rope rather than a string of beads, at whatever volume the spec asks for.
+      var dy = -Math.cos(S.tailCarry), dz = -Math.sin(S.tailCarry);
+      var py = 0, pz = 0, travelled = 0, guard = 0;
+      while (travelled < S.tailLen && guard++ < 80){
+        t = Math.min(1, travelled / S.tailLen);
+        r = S.tailR0 + (S.tailR1 - S.tailR0) * t;
+        tail.add(blob(maneMat, r * S.tailWide, r, r, 0, py, pz));
+        if (S.tailPlume && guard > 1 && guard % 2 === 0 && t < 0.94){
+          tail.add(blob(maneMat, r * 0.74, r * 0.74, r * 0.74,  r * 0.85, py, pz));
+          tail.add(blob(maneMat, r * 0.74, r * 0.74, r * 0.74, -r * 0.85, py, pz));
+        }
+        var stepLen = Math.max(0.025, r * 0.58);
+        py += dy * stepLen;
+        pz += dz * stepLen;
+        travelled += stepLen;
+        dy -= S.tailDroop * (stepLen / 0.12);
+        var dl = Math.sqrt(dy * dy + dz * dz) || 1;
+        dy /= dl; dz /= dl;
+      }
+
+      return { spec: S, root: root, body: body, head: head, tail: tail, legs: legs };
+    }
+
+    var ponies = SPECS.map(function(S){
+      var p = buildPony(S);
+      scene.add(p.root);
+      return p;
+    });
+
+    // ---------- trot ----------
+    function posePony(P, t){
+      var S = P.spec;
+      var a0 = t * S.cadence + S.phase;
+      P.legs.forEach(function(L){
+        var a = a0 + L.ph;
+        L.hip.rotation.x = Math.sin(a) * S.stride;
+        L.knee.rotation.x = Math.max(0, -Math.sin(a - 0.9)) * S.stride * 1.5;
+      });
+      P.body.position.y = Math.abs(Math.sin(a0)) * S.bob;
+      P.body.rotation.z = Math.sin(a0 * 0.5) * 0.025;
+      P.body.rotation.y = Math.sin(a0 * 0.33) * 0.02;
+      P.head.rotation.x = S.headPitch + Math.sin(a0 + 0.6) * 0.06;
+      P.head.rotation.z = Math.sin(a0 * 0.42) * 0.05;
+      P.tail.rotation.z = Math.sin(a0 * 0.62) * S.tailSway;
+      P.tail.rotation.x = Math.sin(a0 * 0.5 + 1.1) * S.tailSway * 0.45;
+    }
+
+    var clock = new THREE.Clock();
+
+    function step(dt, t){
+      // camera ease toward the active preset
+      var k = reduceMotion ? 1 : Math.min(1, dt * 6);
+      camTheta += (wantTheta - camTheta) * k;
+      camPhi += (wantPhi - camPhi) * k;
+      camRadius += (wantRadius - camRadius) * k;
+      updateCamera();
+
+      ponies.forEach(function(P){ posePony(P, t); });
+
+      if (!reduceMotion){
+        grid.position.z = (grid.position.z + dt * 6) % GRID_CELL;
+      }
+      renderer.render(scene, camera);
+    }
+
+    function tick(){
+      requestAnimationFrame(tick);
+      var dt = Math.min(clock.getDelta(), 0.05);
+      step(dt, clock.getElapsedTime());
+    }
+
+    if (reduceMotion){
+      step(0.016, 0.4);
+    } else {
+      tick();
+    }
+
+    // ---------- controls: camera presets ----------
+    var activePreset = 'quarter';
+    function setPreset(nameKey){
+      var preset = CAM_PRESETS[nameKey];
+      if (!preset) return;
+      activePreset = nameKey;
+      wantTheta = preset.theta;
+      wantPhi = preset.phi;
+      wantRadius = preset.radius;
+      Object.keys(PRESET_BUTTONS).forEach(function(k){
+        var b = document.getElementById(PRESET_BUTTONS[k]);
+        if (b) b.classList.toggle('active', k === nameKey);
+      });
+      if (caption) caption.textContent = preset.note;
+      if (reduceMotion){
+        camTheta = wantTheta; camPhi = wantPhi; camRadius = wantRadius;
+        step(0.016, 0.4);
+      }
+    }
+    Object.keys(PRESET_BUTTONS).forEach(function(k){
+      var b = document.getElementById(PRESET_BUTTONS[k]);
+      if (b) b.addEventListener('click', function(){ setPreset(k); });
+    });
+
+    // ---------- controls: manual drag-orbit ----------
+    var dragging = false, lastX = 0, lastY = 0;
+    function pointerDown(x, y){
+      dragging = true; lastX = x; lastY = y;
+      if (hint) hint.style.opacity = '0';
+    }
+    function pointerMove(x, y){
+      if (!dragging) return;
+      camTheta -= (x - lastX) * 0.008;
+      camPhi -= (y - lastY) * 0.008;
+      camPhi = Math.max(0.3, Math.min(Math.PI - 0.3, camPhi));
+      wantTheta = camTheta; wantPhi = camPhi;
+      lastX = x; lastY = y;
+      updateCamera();
+      if (reduceMotion) step(0.016, 0.4);
+    }
+    function pointerUp(){ dragging = false; }
+
+    canvas.addEventListener('pointerdown', function(e){ canvas.setPointerCapture(e.pointerId); pointerDown(e.clientX, e.clientY); });
+    canvas.addEventListener('pointermove', function(e){ pointerMove(e.clientX, e.clientY); });
+    canvas.addEventListener('pointerup', pointerUp);
+    canvas.addEventListener('pointerleave', pointerUp);
+    canvas.addEventListener('wheel', function(e){
+      e.preventDefault();
+      wantRadius = Math.max(4.5, Math.min(16, wantRadius + e.deltaY * 0.004));
+      if (reduceMotion){ camRadius = wantRadius; updateCamera(); step(0.016, 0.4); }
+    }, { passive: false });
+
+  } catch (err){
+    var fallback = document.createElement('div');
+    fallback.className = 'engine-fallback';
+    fallback.textContent = 'Live 3D lineup couldn\'t start in this browser. Try a recent Chrome, Firefox, Safari or Edge with WebGL enabled.';
+    viewport.appendChild(fallback);
+    if (window.console) console.error('Rear-view lineup failed to init:', err);
   }
 })();
 </script>
