@@ -72,6 +72,7 @@ extends CharacterBody3D
 @onready var camera: Camera3D = $SpringArm3D/Camera3D
 @onready var sync: MultiplayerSynchronizer = $MultiplayerSynchronizer
 @onready var exhaust: CPUParticles3D = $Visual/Exhaust
+@onready var horn_trail: CPUParticles3D = $Visual/HornTrail
 
 ## The glTF import wraps our exported "PonyRig" group in an extra generic
 ## scene-root node, hence the double nesting (RigInstance/PonyRig/...).
@@ -121,6 +122,7 @@ func _ready() -> void:
 	_drift_seed = randf() * 1000.0
 	_flail_seed = randf() * 1000.0
 	_setup_exhaust()
+	_setup_horn_trail()
 
 	var config := SceneReplicationConfig.new()
 	config.add_property(NodePath(".:position"))
@@ -142,11 +144,61 @@ func _setup_exhaust() -> void:
 	exhaust.gravity = Vector3.ZERO
 	exhaust.scale_amount_min = 0.15
 	exhaust.scale_amount_max = 0.35
+	exhaust.angular_velocity_min = -180.0
+	exhaust.angular_velocity_max = 180.0
 	var grad := Gradient.new()
 	grad.add_point(0.0, Color(1.0, 0.85, 0.2, 1.0))
 	grad.add_point(0.5, Color(1.0, 0.5, 0.1, 1.0))
 	grad.add_point(1.0, Color(0.3, 0.8, 0.7, 0.0))
 	exhaust.color_ramp = grad
+	# Chunky cube "pixel debris" mesh instead of a soft billboard, matching
+	# the Look Book's Turbo Boost look — reuses the same low-poly language
+	# as the rest of the rig.
+	var box := BoxMesh.new()
+	box.size = Vector3(0.14, 0.14, 0.14)
+	var particle_mat := StandardMaterial3D.new()
+	particle_mat.vertex_color_use_as_albedo = true
+	particle_mat.emission_enabled = true
+	particle_mat.emission = Color(1.0, 1.0, 1.0)
+	particle_mat.emission_energy_multiplier = 1.4
+	particle_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	box.material = particle_mat
+	exhaust.mesh = box
+
+## Trails a spinning horn during a Zero-G Barrel Roll (matches the Look
+## Book's cyan horn-glow trail). Emits continuously in world space — since
+## the emission point spins with the body, the particles left behind form a
+## visible streak on their own, no manual position-history buffer needed.
+func _setup_horn_trail() -> void:
+	if horn_trail == null:
+		return
+	horn_trail.emitting = false
+	horn_trail.one_shot = false
+	horn_trail.local_coords = false
+	horn_trail.amount = 24
+	horn_trail.lifetime = 0.45
+	horn_trail.explosiveness = 0.0
+	horn_trail.direction = Vector3.ZERO
+	horn_trail.spread = 0.0
+	horn_trail.initial_velocity_min = 0.0
+	horn_trail.initial_velocity_max = 0.3
+	horn_trail.gravity = Vector3.ZERO
+	horn_trail.scale_amount_min = 0.1
+	horn_trail.scale_amount_max = 0.18
+	var grad := Gradient.new()
+	grad.add_point(0.0, Color(0.44, 0.89, 0.77, 0.9))
+	grad.add_point(1.0, Color(0.44, 0.89, 0.77, 0.0))
+	horn_trail.color_ramp = grad
+	var mat := StandardMaterial3D.new()
+	mat.vertex_color_use_as_albedo = true
+	mat.emission_enabled = true
+	mat.emission = Color(0.44, 0.89, 0.77)
+	mat.emission_energy_multiplier = 2.0
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	horn_trail.mesh = SphereMesh.new()
+	horn_trail.mesh.radial_segments = 6
+	horn_trail.mesh.rings = 3
+	horn_trail.mesh.material = mat
 
 func _physics_process(delta: float) -> void:
 	if not is_multiplayer_authority():
@@ -273,6 +325,8 @@ func _first_non_floor_normal() -> Vector3:
 
 func _update_roll(delta: float) -> void:
 	_barrel_roll_cooldown = max(0.0, _barrel_roll_cooldown - delta)
+	if horn_trail != null:
+		horn_trail.emitting = _barrel_roll_timer > 0.0
 	if _barrel_roll_timer > 0.0:
 		_barrel_roll_timer -= delta
 		_roll_angle += _barrel_roll_axis * barrel_roll_spin_speed * delta
