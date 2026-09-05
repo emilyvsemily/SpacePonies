@@ -1,12 +1,8 @@
-[gd_scene load_steps=16 format=3 uid="uid://c0pony0000001"]
+[gd_scene load_steps=15 format=3 uid="uid://c0pony0000001"]
 
 [ext_resource type="Script" path="res://scripts/pony_controller.gd" id="1_pony"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_body"]
-radius = 1.0
-height = 2.8
-
-[sub_resource type="CapsuleMesh" id="CapsuleMesh_body"]
 radius = 1.0
 height = 2.8
 
@@ -59,10 +55,6 @@ script = ExtResource("1_pony")
 shape = SubResource("CapsuleShape3D_body")
 
 [node name="Visual" type="Node3D" parent="."]
-
-[node name="Body" type="MeshInstance3D" parent="Visual"]
-mesh = SubResource("CapsuleMesh_body")
-surface_material_override/0 = SubResource("StandardMaterial3D_body")
 
 [node name="Snout" type="MeshInstance3D" parent="Visual"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.22, 0.22, -1.21)
