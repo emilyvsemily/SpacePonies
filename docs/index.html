@@ -1311,25 +1311,35 @@
       trailGeo.attributes.position.needsUpdate = true;
     }
 
-    // ---------- turbo exhaust (fire + mystery gas, same Points/BufferGeometry technique as the horn trail
-    // above, extended with per-particle velocity/lifetime so it bursts and disperses instead of just tracing
-    // a path) ----------
-    var EX_N = 110;
-    var exPos = new Float32Array(EX_N * 3);
-    var exCol = new Float32Array(EX_N * 3);
-    var exState = [];
-    for (var exI = 0; exI < EX_N; exI++){ exState.push({ vx: 0, vy: 0, vz: 0, age: 0, life: 0, r: 0, g: 0, b: 0, gas: false }); }
-    var exCursor = 0;
-    var exGeo = new THREE.BufferGeometry();
-    exGeo.setAttribute('position', new THREE.BufferAttribute(exPos, 3));
-    exGeo.setAttribute('color', new THREE.BufferAttribute(exCol, 3));
-    var exMat = new THREE.PointsMaterial({
-      size: 0.12, vertexColors: true, transparent: true, opacity: 0.9,
-      blending: THREE.AdditiveBlending, depthWrite: false, sizeAttenuation: true
+    // ---------- turbo exhaust (fire + mystery gas) ----------
+    // Chunky/blocky "pixel" pass: instead of soft round Points, each particle is a small flat-shaded cube
+    // rendered via a single InstancedMesh (one draw call for the whole cloud, however many cubes are alive),
+    // fitting the low-poly/PS1-adjacent look used everywhere else on the rig instead of a smooth-smoke look.
+    // Pool is much larger than before so a big, overwhelming burst never has to recycle a still-visible cube.
+    var EX_N = 520;
+    var exGeo = new THREE.BoxGeometry(0.11, 0.11, 0.11);
+    var exMat = new THREE.MeshBasicMaterial({
+      vertexColors: true, transparent: true, opacity: 0.95,
+      blending: THREE.AdditiveBlending, depthWrite: false
     });
-    var exhaust = new THREE.Points(exGeo, exMat);
+    var exhaust = new THREE.InstancedMesh(exGeo, exMat, EX_N);
+    exhaust.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+    exhaust.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(EX_N * 3), 3);
+    exhaust.instanceColor.setUsage(THREE.DynamicDrawUsage);
+    exhaust.frustumCulled = false; // cubes fling out well past the pony's own bounds — never pop out early
     exhaust.visible = false;
     scene.add(exhaust);
+    var exDummy = new THREE.Object3D();
+
+    var exState = [];
+    for (var exI = 0; exI < EX_N; exI++){
+      exState.push({
+        px: 0, py: 0, pz: 0, vx: 0, vy: 0, vz: 0, age: 0, life: 0,
+        r: 0, g: 0, b: 0, gas: false, baseScale: 1,
+        rotX: 0, rotY: 0, rotZ: 0, rotVX: 0, rotVY: 0, rotVZ: 0
+      });
+    }
+    var exCursor = 0;
 
     // emitter sits at the rump/tail-base — a little below and behind the tail attachment point
     var exhaustEmitter = new THREE.Object3D();
@@ -1344,24 +1354,32 @@
 
     var GAS_HUES = [0.42, 0.48, 0.58, 0.78, 0.86]; // teal/cyan through violet/magenta — deliberately unnatural
     var exColorScratch = new THREE.Color();
+    var exColorScratch2 = new THREE.Color();
+    var exBlack = new THREE.Color(0, 0, 0);
 
     function spawnExhaustParticle(isGas){
       var idx = exCursor; exCursor = (exCursor + 1) % EX_N;
       var st = exState[idx];
 
-      // spread cone around the backward aim direction, wider/lazier for gas than for fire
-      var spread = isGas ? 0.9 : 0.45;
+      // spread cone around the backward aim direction, wider/lazier for gas than for fire — widened well
+      // past the original cone so the burst reads as a big, overwhelming cloud rather than a narrow jet
+      var spread = isGas ? 1.5 : 0.7;
       var jx = (Math.random() - 0.5) * spread;
       var jy = (Math.random() - 0.5) * spread * 0.8;
       var jz = (Math.random() - 0.5) * spread;
-      var speed = isGas ? (0.55 + Math.random() * 0.7) : (1.5 + Math.random() * 1.3);
+      var speed = isGas ? (0.5 + Math.random() * 0.85) : (1.6 + Math.random() * 1.6);
 
       st.vx = exDir.x * speed + jx;
       st.vy = exDir.y * speed + jy + (isGas ? 0.15 : 0); // gas wafts slightly upward-ish, still zero-G-loose
       st.vz = exDir.z * speed + jz;
       st.age = 0;
-      st.life = isGas ? (0.6 + Math.random() * 0.55) : (0.28 + Math.random() * 0.22);
+      // longer-lived than before so the cloud actually accumulates instead of clearing almost as fast as it spawns
+      st.life = isGas ? (0.9 + Math.random() * 0.9) : (0.4 + Math.random() * 0.35);
       st.gas = isGas;
+      // chunky cube size varies per particle — bigger range reads as debris/voxels, not a uniform dot cloud
+      st.baseScale = isGas ? (0.7 + Math.random() * 1.3) : (0.55 + Math.random() * 0.95);
+      st.rotX = Math.random() * Math.PI * 2; st.rotY = Math.random() * Math.PI * 2; st.rotZ = Math.random() * Math.PI * 2;
+      st.rotVX = (Math.random() - 0.5) * 9; st.rotVY = (Math.random() - 0.5) * 9; st.rotVZ = (Math.random() - 0.5) * 9;
 
       if (isGas){
         var hue = GAS_HUES[(Math.random() * GAS_HUES.length) | 0] + (Math.random() - 0.5) * 0.05;
@@ -1375,19 +1393,18 @@
         st.b = 0.34 + fireMix * 0.06;
       }
 
-      var px = exOrigin.x + (Math.random() - 0.5) * 0.05;
-      var py = exOrigin.y + (Math.random() - 0.5) * 0.05;
-      var pz = exOrigin.z + (Math.random() - 0.5) * 0.05;
-      exPos[idx * 3] = px; exPos[idx * 3 + 1] = py; exPos[idx * 3 + 2] = pz;
-      exCol[idx * 3] = st.r; exCol[idx * 3 + 1] = st.g; exCol[idx * 3 + 2] = st.b;
+      st.px = exOrigin.x + (Math.random() - 0.5) * 0.08;
+      st.py = exOrigin.y + (Math.random() - 0.5) * 0.08;
+      st.pz = exOrigin.z + (Math.random() - 0.5) * 0.08;
     }
 
     function spawnExhaustBurst(){
       exhaustEmitter.getWorldPosition(exOrigin);
       exhaustAim.getWorldPosition(exAimPos);
       exDir.subVectors(exAimPos, exOrigin).normalize();
-      var fireCount = 5 + ((Math.random() * 3) | 0);
-      var gasCount = 3 + ((Math.random() * 3) | 0);
+      // roughly 3x the previous per-burst counts (was 5-7 fire / 3-5 gas) for a much bigger, denser cloud
+      var fireCount = 16 + ((Math.random() * 9) | 0);
+      var gasCount = 12 + ((Math.random() * 9) | 0);
       for (var f = 0; f < fireCount; f++){ spawnExhaustParticle(false); }
       for (var g = 0; g < gasCount; g++){ spawnExhaustParticle(true); }
     }
@@ -1395,38 +1412,67 @@
     function updateExhaust(dt){
       for (var i = 0; i < EX_N; i++){
         var st = exState[i];
-        if (st.life <= 0) continue;
+        if (st.life <= 0){
+          exDummy.position.set(0, -999, 0);
+          exDummy.rotation.set(0, 0, 0);
+          exDummy.scale.setScalar(0);
+          exDummy.updateMatrix();
+          exhaust.setMatrixAt(i, exDummy.matrix);
+          continue;
+        }
         st.age += dt;
         if (st.age >= st.life){
           st.life = 0;
-          exCol[i * 3] = 0; exCol[i * 3 + 1] = 0; exCol[i * 3 + 2] = 0;
+          exDummy.position.set(0, -999, 0);
+          exDummy.rotation.set(0, 0, 0);
+          exDummy.scale.setScalar(0);
+          exDummy.updateMatrix();
+          exhaust.setMatrixAt(i, exDummy.matrix);
+          exhaust.setColorAt(i, exBlack);
           continue;
         }
         // drag so particles billow and slow rather than flying off forever — still no gravity, just dispersing
         var drag = st.gas ? 0.55 : 0.85;
         st.vx *= (1 - dt * drag); st.vy *= (1 - dt * drag); st.vz *= (1 - dt * drag);
-        exPos[i * 3] += st.vx * dt;
-        exPos[i * 3 + 1] += st.vy * dt;
-        exPos[i * 3 + 2] += st.vz * dt;
+        st.px += st.vx * dt;
+        st.py += st.vy * dt;
+        st.pz += st.vz * dt;
+        st.rotX += st.rotVX * dt; st.rotY += st.rotVY * dt; st.rotZ += st.rotVZ * dt;
 
-        var fade = 1 - st.age / st.life;
+        var lifeFrac = st.age / st.life;
+        // quick pop-in then a dissolve-down-to-nothing shrink — chunky voxel debris, not a fading dot
+        var sizeEnv = lifeFrac < 0.12 ? (lifeFrac / 0.12) : (1 - (lifeFrac - 0.12) / 0.88);
+        if (sizeEnv < 0) sizeEnv = 0;
+
+        var fade = 1 - lifeFrac;
         // gas gets an unpredictable flicker on top of the fade — the "mysterious" part
         var flicker = st.gas ? (0.65 + 0.35 * Math.sin(st.age * 37 + i * 12.7)) : (0.85 + 0.15 * Math.sin(st.age * 90 + i));
-        exCol[i * 3] = st.r * fade * flicker;
-        exCol[i * 3 + 1] = st.g * fade * flicker;
-        exCol[i * 3 + 2] = st.b * fade * flicker;
+
+        exDummy.position.set(st.px, st.py, st.pz);
+        exDummy.rotation.set(st.rotX, st.rotY, st.rotZ);
+        exDummy.scale.setScalar(Math.max(0, sizeEnv * st.baseScale));
+        exDummy.updateMatrix();
+        exhaust.setMatrixAt(i, exDummy.matrix);
+        exColorScratch2.setRGB(st.r * fade * flicker, st.g * fade * flicker, st.b * fade * flicker);
+        exhaust.setColorAt(i, exColorScratch2);
       }
-      exGeo.attributes.position.needsUpdate = true;
-      exGeo.attributes.color.needsUpdate = true;
+      exhaust.instanceMatrix.needsUpdate = true;
+      if (exhaust.instanceColor) exhaust.instanceColor.needsUpdate = true;
     }
 
     function resetExhaust(){
       for (var i = 0; i < EX_N; i++){
         var st = exState[i];
         st.life = 0; st.age = 0;
-        exCol[i * 3] = 0; exCol[i * 3 + 1] = 0; exCol[i * 3 + 2] = 0;
+        exDummy.position.set(0, -999, 0);
+        exDummy.rotation.set(0, 0, 0);
+        exDummy.scale.setScalar(0);
+        exDummy.updateMatrix();
+        exhaust.setMatrixAt(i, exDummy.matrix);
+        exhaust.setColorAt(i, exBlack);
       }
-      exGeo.attributes.color.needsUpdate = true;
+      exhaust.instanceMatrix.needsUpdate = true;
+      if (exhaust.instanceColor) exhaust.instanceColor.needsUpdate = true;
     }
 
     // ---------- animation ----------
@@ -1436,6 +1482,11 @@
     var turboNextPulse = 0;
     var turboRecoilZ = 0, turboRecoilVZ = 0;
     var turboRecoilPitch = 0, turboRecoilVPitch = 0;
+    // extra "barely in control" chaos channels layered on top of the original forward-lurch/pitch-buck pair —
+    // each is its own spring-damper so a pulse kicks a velocity and lets it overshoot/settle rather than snap
+    var turboRecoilRoll = 0, turboRecoilVRoll = 0;
+    var turboRecoilYaw = 0, turboRecoilVYaw = 0;
+    var turboRecoilX = 0, turboRecoilVX = 0;
 
     // head: its own secondary motion, sprung the same way the leg joints are (loose stiffness/damping so it
     // overshoots and settles rather than snapping straight to target), PLUS an unmotivated snap layer below —
@@ -1560,33 +1611,44 @@
     // use for walk/roll, so the whole body bucks/shudders on each thrust instead of sliding smoothly.
     function animateTurbo(t, dt){
       if (t >= turboNextPulse){
-        turboNextPulse = t + 0.3 + Math.random() * 0.22; // irregular cadence — keeps it janky, not metronomic
-        turboRecoilVZ += 2.6 + Math.random() * 0.9; // forward lurch: thrust fires backward, pony kicks forward
-        turboRecoilVPitch += 2.0 + Math.random() * 0.8; // a little buck/shudder through the body
-        headVX -= 3.2 + Math.random() * 1.6; // head whips back on the exact same recoil that bucks the body
+        // pulses come roughly twice as often as before — barely-controlled, not a steady metronome
+        turboNextPulse = t + 0.16 + Math.random() * 0.16;
+        turboRecoilVZ += 4.6 + Math.random() * 1.8; // forward lurch: thrust fires backward, pony kicks forward — big
+        turboRecoilVPitch += 3.6 + Math.random() * 1.6; // a much harder buck/shudder through the body
+        // extra chaos channels: the pony also rolls, yaws and staggers sideways on every pulse, unpredictably —
+        // signed randomly each time so it never settles into a repeating pattern, i.e. "barely in control"
+        turboRecoilVRoll += (Math.random() < 0.5 ? -1 : 1) * (2.2 + Math.random() * 2.0);
+        turboRecoilVYaw += (Math.random() < 0.5 ? -1 : 1) * (1.6 + Math.random() * 1.6);
+        turboRecoilVX += (Math.random() < 0.5 ? -1 : 1) * (1.4 + Math.random() * 1.2);
+        headVX -= 5.2 + Math.random() * 2.6; // head whip-back pushed well past the original kick
+        headVY += (Math.random() - 0.5) * 3.2;
+        headVZ += (Math.random() - 0.5) * 2.4;
         legs.forEach(function(leg){
-          leg.hipVX -= 0.9 + Math.random() * 0.6;
-          leg.hipVZ += (Math.random() - 0.5) * 2.0;
+          leg.hipVX -= 1.7 + Math.random() * 1.2;
+          leg.hipVZ += (Math.random() - 0.5) * 3.6;
         });
         spawnExhaustBurst();
       }
 
       var rz = spring(turboRecoilZ, turboRecoilVZ, 0, 42, 7.5, dt); turboRecoilZ = rz[0]; turboRecoilVZ = rz[1];
       var rp = spring(turboRecoilPitch, turboRecoilVPitch, 0, 48, 8.5, dt); turboRecoilPitch = rp[0]; turboRecoilVPitch = rp[1];
+      var rr = spring(turboRecoilRoll, turboRecoilVRoll, 0, 30, 5.5, dt); turboRecoilRoll = rr[0]; turboRecoilVRoll = rr[1];
+      var ry = spring(turboRecoilYaw, turboRecoilVYaw, 0, 30, 5.5, dt); turboRecoilYaw = ry[0]; turboRecoilVYaw = ry[1];
+      var rx2 = spring(turboRecoilX, turboRecoilVX, 0, 34, 6, dt); turboRecoilX = rx2[0]; turboRecoilVX = rx2[1];
 
       rig.position.y = bodyBaseY + 1.32 + Math.sin(t * 1.1) * 0.05;
       rig.position.z = turboRecoilZ * 0.045;
-      rig.position.x = Math.sin(t * 0.7) * 0.06;
+      rig.position.x = Math.sin(t * 0.7) * 0.06 + turboRecoilX * 0.05;
       rig.rotation.x = -turboRecoilPitch * 0.05;
-      rig.rotation.y = Math.sin(t * 0.55) * 0.14;
-      rig.rotation.z = Math.sin(t * 0.9 + 1) * 0.05;
+      rig.rotation.y = Math.sin(t * 0.55) * 0.14 + turboRecoilYaw * 0.11;
+      rig.rotation.z = Math.sin(t * 0.9 + 1) * 0.05 + turboRecoilRoll * 0.13;
 
       // head: idles on its own frequencies same as the other modes, then gets whipped back hard by the
-      // headVX impulse fired above on every recoil pulse — the spring makes it overshoot and settle each time.
+      // headVX/VY/VZ impulses fired above on every recoil pulse — the spring makes it overshoot and settle each time.
       headSnap(t);
-      var headTargetX = Math.sin(t * 3.1) * 0.05 + Math.sin(t * 8.1 + 2) * 0.06 + turboRecoilPitch * 0.03;
-      var headTargetY = Math.sin(t * 1.1 + 0.3) * 0.06;
-      var headTargetZ = Math.sin(t * 2.3 + 0.5) * 0.09 + Math.sin(t * 14.0) * 0.05;
+      var headTargetX = Math.sin(t * 3.1) * 0.05 + Math.sin(t * 8.1 + 2) * 0.06 + turboRecoilPitch * 0.05;
+      var headTargetY = Math.sin(t * 1.1 + 0.3) * 0.06 + turboRecoilYaw * 0.05;
+      var headTargetZ = Math.sin(t * 2.3 + 0.5) * 0.09 + Math.sin(t * 14.0) * 0.05 + turboRecoilRoll * 0.04;
       var hhx = spring(headX, headVX, headTargetX, 34, 3.2, dt); headX = hhx[0]; headVX = hhx[1];
       var hhy = spring(headY, headVY, headTargetY, 24, 2.8, dt); headY = hhy[0]; headVY = hhy[1];
       var hhz = spring(headZ, headVZ, headTargetZ, 34, 3.2, dt); headZ = hhz[0]; headVZ = hhz[1];
@@ -1596,7 +1658,7 @@
       legs.forEach(function(leg, i){
         var hipTargetX = -0.12 + Math.sin(t * 1.7 + leg.phase) * 0.1;
         var hipTargetZ = Math.sin(t * 1.3 + leg.phase) * 0.12;
-        var rx = spring(leg.hipX, leg.hipVX, hipTargetX, 60, 6, dt); leg.hipX = rx[0]; leg.hipVX = rx[1];
+        var rxl = spring(leg.hipX, leg.hipVX, hipTargetX, 60, 6, dt); leg.hipX = rxl[0]; leg.hipVX = rxl[1];
         var rzl = spring(leg.hipZ, leg.hipVZ, hipTargetZ, 60, 6, dt); leg.hipZ = rzl[0]; leg.hipVZ = rzl[1];
         leg.group.rotation.x = leg.hipX;
         leg.group.rotation.z = leg.hipZ;
@@ -1614,7 +1676,7 @@
       });
 
       tail.rotation.x = Math.sin(t * 4.4) * 0.2 - turboRecoilPitch * 0.06;
-      tail.rotation.z = Math.sin(t * 3.1 + 1) * 0.22;
+      tail.rotation.z = Math.sin(t * 3.1 + 1) * 0.22 + turboRecoilRoll * 0.1;
 
       updateExhaust(dt);
     }
@@ -1634,6 +1696,7 @@
 
     function resetTurbo(){
       turboRecoilZ = turboRecoilVZ = turboRecoilPitch = turboRecoilVPitch = 0;
+      turboRecoilRoll = turboRecoilVRoll = turboRecoilYaw = turboRecoilVYaw = turboRecoilX = turboRecoilVX = 0;
       turboNextPulse = clock.getElapsedTime();
       resetExhaust();
     }
@@ -1648,6 +1711,7 @@
       renderer.render(scene, camera);
     }
     resetPose();
+    resetExhaust();
     tick();
 
     // ---------- controls: buttons ----------
