@@ -53,12 +53,20 @@ extends CharacterBody3D
 @export var knee_stiffness: float = 55.0
 @export var knee_damping: float = 5.0
 
-## Collision/ability "roll" reaction: an impulse-driven spring on the whole
-## visual rig, always relaxing back toward neutral.
+## Ability-use "roll" kick: a small impulse-driven spring on the whole visual
+## rig, always relaxing back toward neutral.
 @export var roll_stiffness: float = 18.0
 @export var roll_damping: float = 3.2
+
+## A hard collision triggers a genuine Zero-G Barrel Roll — continuous
+## multi-rotation spin with the legs flailing independently, matching the
+## Look Book's dedicated barrel-roll animation — rather than just a small
+## nudge. It settles back to neutral via the same spring once it ends.
 @export var collision_roll_threshold: float = 3.0
-@export var collision_roll_scale: float = 0.16
+@export var barrel_roll_duration: float = 1.1
+@export var barrel_roll_spin_speed: float = 14.0
+@export var barrel_roll_flail_amount: float = 1.4
+@export var barrel_roll_retrigger_cooldown: float = 1.2
 
 @onready var visual: Node3D = $Visual
 @onready var camera: Camera3D = $SpringArm3D/Camera3D
@@ -101,11 +109,17 @@ var _roll_angle: Vector3 = Vector3.ZERO
 var _roll_vel: Vector3 = Vector3.ZERO
 var _pre_slide_velocity: Vector3 = Vector3.ZERO
 
+var _barrel_roll_timer: float = 0.0
+var _barrel_roll_cooldown: float = 0.0
+var _barrel_roll_axis: Vector3 = Vector3.ZERO
+var _flail_seed: float = 0.0
+
 func _ready() -> void:
 	camera.current = is_local_player
 	_ai_seed = randf() * 1000.0
 	_ai_ability_timer = randf_range(1.0, 3.0)
 	_drift_seed = randf() * 1000.0
+	_flail_seed = randf() * 1000.0
 	_setup_exhaust()
 
 	var config := SceneReplicationConfig.new()
@@ -168,7 +182,7 @@ func _physics_process(delta: float) -> void:
 
 	var speed := Vector3(velocity.x, 0.0, velocity.z).length()
 	_update_leg_rig(delta, speed)
-	_update_roll_spring(delta)
+	_update_roll(delta)
 	_update_wacky_wobble(delta, speed)
 
 func _get_input_dir(delta: float) -> Vector2:
@@ -220,12 +234,19 @@ func collect_food() -> void:
 	food_collected += 1
 	print("%s collected food (total: %d)" % [pony_name, food_collected])
 
-## A hard hit kicks the roll spring, direction based on the collision normal
-## crossed with incoming velocity, so it reads as tumbling from the impact
-## rather than a generic shake. Purely visual — doesn't touch the actual
-## collision response, so movement stays exactly as robust as before.
+## A hard hit starts a full Zero-G Barrel Roll: continuous multi-rotation
+## spin around an axis derived from the collision normal crossed with
+## incoming velocity, so it reads as tumbling from the impact rather than a
+## generic shake. Purely visual — doesn't touch the actual collision
+## response, so movement stays exactly as robust as before.
 func _check_collision_roll() -> void:
 	if get_slide_collision_count() == 0:
+		return
+	# Gate on both the active roll AND a post-roll cooldown — without this, a
+	# pony resting continuously against a wall (very common: the guard rails
+	# are always there) would retrigger a fresh multi-rotation roll on every
+	# single physics tick it's in contact, instead of once per real impact.
+	if _barrel_roll_timer > 0.0 or _barrel_roll_cooldown > 0.0:
 		return
 	var impact_speed := _pre_slide_velocity.length()
 	if impact_speed <= collision_roll_threshold:
@@ -236,10 +257,24 @@ func _check_collision_roll() -> void:
 	var spin_axis := normal.cross(incoming)
 	if spin_axis.length() < 0.05:
 		spin_axis = Vector3.UP
-	spin_axis = spin_axis.normalized()
-	_roll_vel += spin_axis * impact_speed * collision_roll_scale
+	_barrel_roll_axis = spin_axis.normalized()
+	_barrel_roll_timer = barrel_roll_duration
 
-func _update_roll_spring(delta: float) -> void:
+func _update_roll(delta: float) -> void:
+	_barrel_roll_cooldown = max(0.0, _barrel_roll_cooldown - delta)
+	if _barrel_roll_timer > 0.0:
+		_barrel_roll_timer -= delta
+		_roll_angle += _barrel_roll_axis * barrel_roll_spin_speed * delta
+		_roll_vel = _barrel_roll_axis * barrel_roll_spin_speed
+		if _barrel_roll_timer <= 0.0:
+			# Wrap to the small residual past the last full rotation so the
+			# settle-phase spring below relaxes it, instead of unwinding the
+			# whole multi-rotation spin backward.
+			_roll_angle.x = wrapf(_roll_angle.x, -PI, PI)
+			_roll_angle.y = wrapf(_roll_angle.y, -PI, PI)
+			_roll_angle.z = wrapf(_roll_angle.z, -PI, PI)
+			_barrel_roll_cooldown = barrel_roll_retrigger_cooldown
+		return
 	var rx := _spring_step(_roll_angle.x, _roll_vel.x, 0.0, roll_stiffness, roll_damping, delta)
 	_roll_angle.x = rx.x
 	_roll_vel.x = rx.y
@@ -252,10 +287,29 @@ func _update_roll_spring(delta: float) -> void:
 
 ## Two-bone walk cycle: a sine target per hip, sprung toward (not snapped),
 ## with the knee bending on a delayed phase so the leg reads as lifting and
-## planting rather than swinging like a rigid pendulum.
+## planting rather than swinging like a rigid pendulum. During an active
+## Zero-G Barrel Roll, the legs flail on their own chaotic noise instead of
+## the gait targets, matching the Look Book's "ragdoll in freefall" look.
 func _update_leg_rig(delta: float, speed: float) -> void:
 	if _leg_hips.is_empty():
 		return
+	if _barrel_roll_timer > 0.0:
+		_flail_seed += delta * leg_swing_freq
+		for i in _leg_hips.size():
+			var flail_phase := _flail_seed * (1.3 + i * 0.4) + _leg_phase_offsets[i] * 2.0
+			var hip_target := sin(flail_phase) * barrel_roll_flail_amount
+			var hr := _spring_step(_hip_angle[i], _hip_vel[i], hip_target, hip_stiffness, hip_damping, delta)
+			_hip_angle[i] = hr.x
+			_hip_vel[i] = hr.y
+			_leg_hips[i].rotation.x = _hip_angle[i]
+
+			var knee_target := (sin(flail_phase * 1.7 + 1.0) * 0.5 + 0.5) * barrel_roll_flail_amount
+			var kr := _spring_step(_knee_angle[i], _knee_vel[i], knee_target, knee_stiffness, knee_damping, delta)
+			_knee_angle[i] = kr.x
+			_knee_vel[i] = kr.y
+			_leg_knees[i].rotation.x = _knee_angle[i]
+		return
+
 	var speed_ratio: float = clamp(speed / max_speed, 0.0, 1.0)
 	_walk_time += delta * leg_swing_freq * (0.3 + speed_ratio)
 	for i in _leg_hips.size():
