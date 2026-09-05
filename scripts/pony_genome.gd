@@ -21,6 +21,13 @@ const ABILITIES := ["dash", "gravity-flip", "fart-boost", "teleport-hiccup", "ma
 @export var leg_type: String = "rocket-boots"
 @export var tail_type: String = "rocket"
 @export var size: float = 1.0
+## Exaggeration genes. These are space ponies — generations of adapting to
+## life out here have left some of them on absurd stilts and others with
+## legs that have all but given up.
+@export var leg_scale: float = 1.0
+@export var neck_scale: float = 1.0
+@export var girth_scale: float = 1.0
+@export var space_helmet: bool = false
 @export var coat_hue: float = 0.0
 @export var mane_hue: float = 0.3
 @export var mane_style: String = "space-mane"
@@ -56,7 +63,29 @@ static func generate_random() -> PonyGenome:
 		g.leg_count = 7
 	g.leg_type = LEG_TYPES[randi() % LEG_TYPES.size()]
 	g.tail_type = TAIL_TYPES[randi() % TAIL_TYPES.size()]
-	g.size = randf_range(0.8, 1.3)
+	# Mostly sensible, with rare runs at both extremes — a pointlessly tiny
+	# or pointlessly enormous pony should be a thing that occasionally just
+	# happens to you.
+	var size_r := randf()
+	if size_r < 0.04:
+		g.size = randf_range(0.35, 0.55)
+	elif size_r < 0.08:
+		g.size = randf_range(1.9, 2.9)
+	else:
+		g.size = randf_range(0.8, 1.35)
+
+	var leg_scale_r := randf()
+	if leg_scale_r < 0.12:
+		g.leg_scale = randf_range(0.28, 0.5)    # vestigial, basically useless
+	elif leg_scale_r < 0.24:
+		g.leg_scale = randf_range(1.7, 2.5)     # absurd stilts
+	else:
+		g.leg_scale = randf_range(0.85, 1.3)
+
+	g.neck_scale = randf_range(0.65, 1.15) if randf() < 0.75 else randf_range(1.35, 2.1)
+	g.girth_scale = randf_range(0.75, 1.45)
+	g.space_helmet = randf() < 0.45
+
 	g.coat_hue = randf()
 	g.mane_hue = fmod(g.coat_hue + randf_range(0.28, 0.72), 1.0)
 	g.mane_style = MANE_STYLES[randi() % MANE_STYLES.size()]
@@ -103,6 +132,20 @@ static func generate_random() -> PonyGenome:
 		"aurora-willow":
 			handling += 14.0
 			acceleration -= 4.0
+	# Exaggerated builds pay for themselves.
+	if g.leg_scale < 0.6:
+		speed -= 20.0
+		handling += 6.0
+	elif g.leg_scale > 1.6:
+		speed += 10.0
+		handling -= 14.0
+	if g.size < 0.6:
+		acceleration += 12.0
+		stamina -= 12.0
+	elif g.size > 1.8:
+		acceleration -= 12.0
+		stamina += 10.0
+
 	speed *= 0.85 + g.size * 0.2
 
 	var mutations := 0
@@ -113,6 +156,9 @@ static func generate_random() -> PonyGenome:
 	wackiness += mutations * 7.0
 	wackiness += absf(float(g.leg_count) - 4.0) * 7.0
 	if g.leg_type == "tentacles": wackiness += 6.0
+	if g.leg_scale < 0.6 or g.leg_scale > 1.6: wackiness += 12.0
+	if g.size < 0.6 or g.size > 1.8: wackiness += 12.0
+	if g.space_helmet: wackiness += 4.0
 
 	g.stat_speed = _clamp_stat(speed)
 	g.stat_acceleration = _clamp_stat(acceleration)

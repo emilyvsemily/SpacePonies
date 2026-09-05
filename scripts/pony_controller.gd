@@ -64,9 +64,16 @@ extends CharacterBody3D
 @export var head_damping: float = 3.4
 @export var tail_stiffness: float = 18.0
 @export var tail_damping: float = 1.9
-@export var tail_swoosh: float = 2.6
+@export var tail_swoosh: float = 1.7
 ## How hard turning throws the head and tail out sideways.
-@export var turn_whip: float = 7.0
+@export var turn_whip: float = 3.0
+## Joint limits, in radians per axis. These springs are underdamped on
+## purpose, which means they overshoot their target — without a hard stop
+## the tail swings straight through the haunches and the head through the
+## neck. Hitting a limit also kills that axis's velocity, so the joint
+## stops there instead of storing energy and snapping back out.
+@export var tail_limit: Vector3 = Vector3(0.52, 0.75, 0.75)
+@export var head_limit: Vector3 = Vector3(0.9, 0.55, 0.45)
 
 ## Ability-use "roll" kick: a small impulse-driven spring on the whole visual
 ## rig, always relaxing back toward neutral.
@@ -91,6 +98,7 @@ extends CharacterBody3D
 @export var barrel_roll_limpness: float = 0.35
 
 @onready var visual: Node3D = $Visual
+@onready var collision: CollisionShape3D = $CollisionShape3D
 @onready var camera: Camera3D = $SpringArm3D/Camera3D
 @onready var sync: MultiplayerSynchronizer = $MultiplayerSynchronizer
 @onready var exhaust: CPUParticles3D = $Visual/Exhaust
@@ -184,7 +192,18 @@ func _ready() -> void:
 ## to call again later for breeding/regeneration.
 func build_from_genome(g: PonyGenome) -> void:
 	genome = g
-	var built := PonyRigBuilder.build(visual, genome)
+
+	# Scale the hitbox with the pony, so a pointlessly enormous one doesn't
+	# walk through walls its body clearly overlaps. Clamped tighter than the
+	# visual: at the extremes a literal 0.35x hitbox is unhittable and a
+	# 2.9x one would clear the whole start line by itself.
+	var capsule_scale: float = clampf(genome.size, 0.65, 1.8)
+	var shape := CapsuleShape3D.new()
+	shape.radius = 1.5 * capsule_scale
+	shape.height = 4.2 * capsule_scale
+	collision.shape = shape
+
+	var built := PonyRigBuilder.build(visual, genome, shape.height * 0.5)
 	_leg_hips = built.leg_hips
 	_leg_knees = built.leg_knees
 	_leg_phase_offsets = built.leg_phase_offsets
@@ -207,9 +226,12 @@ func build_from_genome(g: PonyGenome) -> void:
 	# Stats -> movement tuning. Wackiness/Chaos scaling the erratic-ness of
 	# movement is exactly what docs/design.md's genetics framework describes
 	# for that stat, not just a flavor number.
-	max_speed = 9.0 * (0.7 + genome.stat_speed / 100.0 * 0.6)
-	acceleration = 7.0 * (0.7 + genome.stat_acceleration / 100.0 * 0.6)
-	turn_speed = 2.4 * (0.7 + genome.stat_handling / 100.0 * 0.6)
+	# Wide enough that the speed stat actually decides races. At the bottom
+	# of the range you are genuinely stuck with a slow pony and there is
+	# nothing to be done about it; at the top you're clearly quick.
+	max_speed = 9.0 * (0.42 + genome.stat_speed / 100.0 * 1.0)
+	acceleration = 7.0 * (0.45 + genome.stat_acceleration / 100.0 * 0.95)
+	turn_speed = 2.4 * (0.6 + genome.stat_handling / 100.0 * 0.8)
 	var chaos_ratio: float = 0.5 + genome.stat_wackiness / 100.0
 	wobble_amount = 0.12 * chaos_ratio
 	drift_strength = 0.35 * chaos_ratio
@@ -534,7 +556,7 @@ func _update_leg_rig(delta: float, speed: float) -> void:
 ## swinging after it stops — the swoosh. Turning throws them sideways
 ## (the whip), and a tumble throws them everywhere.
 func _update_head_and_tail(delta: float, speed_ratio: float, tumbling: bool) -> void:
-	var whip: float = clampf(_turn_rate * turn_whip, -1.6, 1.6)
+	var whip: float = clampf(_turn_rate * turn_whip, -1.0, 1.0)
 	var limp: float = 0.45 if tumbling else 1.0
 	var energy: float = 0.35 + speed_ratio
 	if tumbling:
@@ -543,28 +565,35 @@ func _update_head_and_tail(delta: float, speed_ratio: float, tumbling: bool) -> 
 	if _head != null:
 		var head_target := Vector3(
 			_head_pitch + sin(_walk_time * 0.9 + 0.6) * 0.22 * energy,
-			-whip * 0.5,
-			sin(_walk_time * 0.42) * 0.2 * energy + whip * 0.35
+			-whip * 0.3,
+			sin(_walk_time * 0.42) * 0.2 * energy + whip * 0.22
 		)
 		var hx := _spring_step(_head_angle.x, _head_vel.x, head_target.x, head_stiffness * limp, head_damping * limp, delta)
 		var hy := _spring_step(_head_angle.y, _head_vel.y, head_target.y, head_stiffness * limp, head_damping * limp, delta)
 		var hz := _spring_step(_head_angle.z, _head_vel.z, head_target.z, head_stiffness * limp, head_damping * limp, delta)
 		_head_angle = Vector3(hx.x, hy.x, hz.x)
 		_head_vel = Vector3(hx.y, hy.y, hz.y)
+		# Limits are relative to the head's rest pitch, not to zero.
+		var head_lim := _clamp_joint(_head_angle, _head_vel, head_limit, Vector3(_head_pitch, 0.0, 0.0))
+		_head_angle = head_lim[0]
+		_head_vel = head_lim[1]
 		_head.rotation = _head_angle
 
 	if _tail != null:
 		var sway: float = _tail_sway * tail_swoosh
 		var tail_target := Vector3(
 			sin(_walk_time * 0.5 + 1.1) * sway * 0.5 * energy,
-			whip * 0.8,
-			sin(_walk_time * 0.62) * sway * energy - whip * 0.9
+			whip * 0.45,
+			sin(_walk_time * 0.62) * sway * energy - whip * 0.5
 		)
 		var tx := _spring_step(_tail_angle.x, _tail_vel.x, tail_target.x, tail_stiffness * limp, tail_damping * limp, delta)
 		var ty := _spring_step(_tail_angle.y, _tail_vel.y, tail_target.y, tail_stiffness * limp, tail_damping * limp, delta)
 		var tz := _spring_step(_tail_angle.z, _tail_vel.z, tail_target.z, tail_stiffness * limp, tail_damping * limp, delta)
 		_tail_angle = Vector3(tx.x, ty.x, tz.x)
 		_tail_vel = Vector3(tx.y, ty.y, tz.y)
+		var tail_lim := _clamp_joint(_tail_angle, _tail_vel, tail_limit, Vector3.ZERO)
+		_tail_angle = tail_lim[0]
+		_tail_vel = tail_lim[1]
 		_tail.rotation = _tail_angle
 
 func _update_wacky_wobble(delta: float, speed: float) -> void:
@@ -578,6 +607,23 @@ func _update_wacky_wobble(delta: float, speed: float) -> void:
 	visual.rotation.x = cos(_wobble_time * 0.5) * wobble_amount * 0.5 * speed_ratio * flash_boost + _roll_angle.x
 	visual.rotation.y = _roll_angle.y
 	visual.position.y = abs(sin(_wobble_time)) * bob_amount * speed_ratio * flash_boost
+
+## Hard joint stop. Returns [angle, velocity] with each axis clamped to
+## center ± limit, and the velocity zeroed on any axis that hit its stop so
+## the joint rests there instead of storing energy and springing back out.
+func _clamp_joint(angle: Vector3, vel: Vector3, limit: Vector3, center: Vector3) -> Array:
+	for axis in 3:
+		var lo: float = center[axis] - limit[axis]
+		var hi: float = center[axis] + limit[axis]
+		if angle[axis] < lo:
+			angle[axis] = lo
+			if vel[axis] < 0.0:
+				vel[axis] = 0.0
+		elif angle[axis] > hi:
+			angle[axis] = hi
+			if vel[axis] > 0.0:
+				vel[axis] = 0.0
+	return [angle, vel]
 
 ## Damped-harmonic-oscillator step, shared by the leg rig and the roll
 ## system: current/velocity spring toward target rather than snapping,

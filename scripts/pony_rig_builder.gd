@@ -126,7 +126,7 @@ static var _shared_blob_mesh: SphereMesh
 ## Returns { leg_hips, leg_knees, leg_phase_offsets, head, tail,
 ## head_pitch, tail_sway, horn_glow } — the controller animates the legs
 ## and sways head/tail from these.
-static func build(visual: Node3D, genome: PonyGenome) -> Dictionary:
+static func build(visual: Node3D, genome: PonyGenome, capsule_half_height: float = 2.1) -> Dictionary:
 	# Only remove a previous rig by name — Visual also hosts the Exhaust and
 	# HornTrail particle emitters as fixed siblings (see Pony.tscn), which
 	# must survive a rebuild, not get swept up in it.
@@ -137,15 +137,26 @@ static func build(visual: Node3D, genome: PonyGenome) -> Dictionary:
 
 	var plan: Dictionary = BODY_PLANS.get(genome.body_plan, BODY_PLANS["ballast-cob"])
 
+	# Exaggeration genes stretch the plan's proportions before anything is
+	# built from them.
+	var leg_len: float = plan.leg_len * genome.leg_scale
+	var girth: float = genome.girth_scale
+	# Scaling the neck arc's end and control points relative to its base
+	# lengthens the neck without detaching it from the shoulder.
+	var neck1_y: float = plan.neck0_y + (plan.neck1_y - plan.neck0_y) * genome.neck_scale
+	var neck1_z: float = plan.neck0_z + (plan.neck1_z - plan.neck0_z) * genome.neck_scale
+	var neck_cy: float = plan.neck0_y + (plan.neck_cy - plan.neck0_y) * genome.neck_scale
+	var neck_cz: float = plan.neck0_z + (plan.neck_cz - plan.neck0_z) * genome.neck_scale
+
 	var rig := Node3D.new()
 	rig.name = "Rig"
 	# Geometry is authored head-toward-+Z; this game treats -Z as forward.
 	rig.rotation.y = PI
-	# Lift so the hooves land on the collision capsule's bottom. The capsule
-	# is 4.2 tall (half-height 2.1) and Visual is scaled by 1.5 * size, so
-	# the capsule floor sits at this rig-local height.
+	# Lift so the hooves land on the collision capsule's bottom, using the
+	# gene-scaled leg length — otherwise a stilt-legged pony sinks and a
+	# stumpy one floats.
 	var visual_scale: float = 1.5 * genome.size
-	rig.position.y = -2.1 / visual_scale + plan.leg_len - plan.hip_y
+	rig.position.y = -capsule_half_height / visual_scale + leg_len - plan.hip_y
 	visual.add_child(rig)
 
 	var body := Node3D.new()
@@ -165,12 +176,12 @@ static func build(visual: Node3D, genome: PonyGenome) -> Dictionary:
 
 	# torso: barrel, chest, belly, croup, then the two haunch domes that ARE
 	# the rear silhouette
-	body.add_child(_blob(coat, plan.barrel_w, plan.barrel_h, plan.barrel_l, 0.0, 0.0, 0.0))
-	body.add_child(_blob(coat, plan.chest_w, plan.chest_h, plan.chest_d, 0.0, plan.chest_y, plan.chest_z))
-	body.add_child(_blob(coat_dark, plan.belly_w, plan.belly_h, plan.belly_d, 0.0, plan.belly_y, plan.belly_z))
-	body.add_child(_blob(coat, plan.croup_w, plan.croup_h, plan.croup_d, 0.0, plan.croup_y, plan.croup_z))
-	body.add_child(_blob(coat, plan.haunch_w, plan.haunch_h, plan.haunch_d, -plan.haunch_x, plan.haunch_y, plan.haunch_z))
-	body.add_child(_blob(coat, plan.haunch_w, plan.haunch_h, plan.haunch_d, plan.haunch_x, plan.haunch_y, plan.haunch_z))
+	body.add_child(_blob(coat, plan.barrel_w * girth, plan.barrel_h * girth, plan.barrel_l, 0.0, 0.0, 0.0))
+	body.add_child(_blob(coat, plan.chest_w * girth, plan.chest_h * girth, plan.chest_d, 0.0, plan.chest_y, plan.chest_z))
+	body.add_child(_blob(coat_dark, plan.belly_w * girth, plan.belly_h * girth, plan.belly_d, 0.0, plan.belly_y, plan.belly_z))
+	body.add_child(_blob(coat, plan.croup_w * girth, plan.croup_h * girth, plan.croup_d, 0.0, plan.croup_y, plan.croup_z))
+	body.add_child(_blob(coat, plan.haunch_w * girth, plan.haunch_h * girth, plan.haunch_d, -plan.haunch_x * girth, plan.haunch_y, plan.haunch_z))
+	body.add_child(_blob(coat, plan.haunch_w * girth, plan.haunch_h * girth, plan.haunch_d, plan.haunch_x * girth, plan.haunch_y, plan.haunch_z))
 
 	if genome.coat_pattern == "spotted":
 		var spot_mat := _mat(PonyGenome.hsl_to_color(genome.mane_hue, 0.5, 0.66))
@@ -183,7 +194,7 @@ static func build(visual: Node3D, genome: PonyGenome) -> Dictionary:
 	var neck_segs: int = plan.neck_segs
 	for i in neck_segs:
 		var t := float(i) / float(neck_segs - 1)
-		var p := _qbez(plan.neck0_y, plan.neck0_z, plan.neck_cy, plan.neck_cz, plan.neck1_y, plan.neck1_z, t)
+		var p := _qbez(plan.neck0_y, plan.neck0_z, neck_cy, neck_cz, neck1_y, neck1_z, t)
 		var r: float = plan.neck_r0 + (plan.neck_r1 - plan.neck_r0) * t
 		body.add_child(_blob(coat, r * plan.neck_wide, r * 1.06, r, 0.0, p.x, p.y))
 
@@ -191,14 +202,14 @@ static func build(visual: Node3D, genome: PonyGenome) -> Dictionary:
 		var mane_steps := neck_segs * 4
 		for i in mane_steps + 1:
 			var t := float(i) / float(mane_steps)
-			var p := _qbez(plan.neck0_y, plan.neck0_z, plan.neck_cy, plan.neck_cz, plan.neck1_y, plan.neck1_z, t)
+			var p := _qbez(plan.neck0_y, plan.neck0_z, neck_cy, neck_cz, neck1_y, neck1_z, t)
 			var r: float = plan.neck_r0 + (plan.neck_r1 - plan.neck_r0) * t
 			var mr: float = r * plan.mane_r
 			body.add_child(_blob(mane_mat, mr * 0.8, mr * 1.1, mr,
 				0.0, p.x + r * plan.mane_off * 0.52, p.y - r * plan.mane_off * 0.88))
 	else:
 		# antenna-mane: a pair of stalks with glowing beads instead of a crest
-		var p_top := _qbez(plan.neck0_y, plan.neck0_z, plan.neck_cy, plan.neck_cz, plan.neck1_y, plan.neck1_z, 0.75)
+		var p_top := _qbez(plan.neck0_y, plan.neck0_z, neck_cy, neck_cz, neck1_y, neck1_z, 0.75)
 		for side in [-1.0, 1.0]:
 			var stalk := _cylinder(plan.neck_r1 * 0.16, plan.neck_r1 * 0.24, plan.neck_r0 * 1.6, mane_mat, 5)
 			stalk.position = Vector3(side * plan.neck_r0 * 0.4, p_top.x + plan.neck_r0 * 0.9, p_top.y - plan.neck_r0 * 0.3)
@@ -212,7 +223,7 @@ static func build(visual: Node3D, genome: PonyGenome) -> Dictionary:
 	# laterally-set eyes, pricked ears
 	var head := Node3D.new()
 	head.name = "Head"
-	head.position = Vector3(0.0, plan.neck1_y, plan.neck1_z)
+	head.position = Vector3(0.0, neck1_y, neck1_z)
 	head.rotation.x = plan.head_pitch
 	body.add_child(head)
 
@@ -268,6 +279,27 @@ static func build(visual: Node3D, genome: PonyGenome) -> Dictionary:
 			0.0, plan.skull_h * 2.3, -plan.skull_d * 0.2)
 		head.add_child(glow)
 		horn_glow = glow
+
+	# Space helmet: a bubble big enough to clear the muzzle, plus a seal ring
+	# at the base. A horn pokes straight through it, which is left alone on
+	# purpose — it's exactly the kind of "shouldn't work but does" the tone
+	# is going for.
+	if genome.space_helmet:
+		var reach: float = plan.skull_d * 0.42 + plan.muzzle_len
+		var dome_r: float = maxf(plan.skull_w, plan.skull_h) * 1.2 + reach * 0.46
+		var glass := _mat(Color(0.72, 0.88, 1.0))
+		glass.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		glass.albedo_color.a = 0.26
+		glass.cull_mode = BaseMaterial3D.CULL_DISABLED
+		glass.roughness = 0.04
+		glass.metallic = 0.0
+		head.add_child(_blob(glass, dome_r, dome_r * 1.02, dome_r * 1.12,
+			0.0, plan.muzzle_y * 0.35, reach * 0.4))
+		var ring_mat := _mat(Color(0.78, 0.8, 0.86), Color.BLACK, 0.3, 0.55)
+		var ring := _cylinder(dome_r * 0.66, dome_r * 0.72, plan.skull_h * 0.2, ring_mat, 12)
+		ring.rotation.x = PI / 2.0
+		ring.position = Vector3(0.0, plan.muzzle_y * 0.35, reach * 0.4 - dome_r * 0.92)
+		head.add_child(ring)
 
 	if genome.gills:
 		var gill_mat := _mat(PonyGenome.hsl_to_color(0.5, 0.55, 0.6), Color(0.435, 0.89, 0.769), 0.4)
