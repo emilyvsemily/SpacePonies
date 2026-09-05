@@ -1643,6 +1643,178 @@
       </div>
     </div>
   </section>
+
+  <!-- ====================================================================
+       ROUND FOUR — the generator as it actually ships. One pony, rolled
+       live from a faithful port of pony_genome.gd's generate_random() and
+       built by a port of pony_rig_builder.gd, animated with
+       pony_controller.gd's spring constants. Everything above this point
+       predates the exaggeration genes (leg_scale / neck_scale /
+       girth_scale / space_helmet) and the 3-7 leg range; this section is
+       the current truth.
+
+       Independently scoped: own IIFE, own "gen-" element ids, own WebGL
+       context, no globals touched.
+       ==================================================================== -->
+  <style>
+    .genlab-wrap{padding-bottom:2.5rem;}
+    .genlab-card{
+      background:var(--surface);
+      border:1px solid var(--line);
+      border-radius:26px;
+      padding:clamp(1.5rem,3vw,2.25rem);
+      box-shadow:var(--shadow);
+      display:flex;
+      flex-direction:column;
+      gap:1.15rem;
+    }
+    .genlab-head{display:flex; flex-direction:column; gap:.55rem;}
+    .genlab-head .blurb{max-width:76ch;}
+    .genlab-grid{
+      display:grid;
+      grid-template-columns:minmax(0,1.2fr) minmax(310px,.8fr);
+      gap:clamp(1.25rem,2.5vw,1.9rem);
+      align-items:start;
+    }
+    .genlab-stage{display:flex; flex-direction:column; gap:.85rem;}
+    .genlab-viewport{
+      position:relative;
+      border-radius:18px;
+      overflow:hidden;
+      aspect-ratio:5/4;
+      background:linear-gradient(180deg,#120d28 0%,#231b49 62%,#170f33 100%);
+    }
+    .genlab-viewport canvas{width:100%; height:100%; display:block; touch-action:none; cursor:grab;}
+    .genlab-viewport canvas:active{cursor:grabbing;}
+    .genlab-actions{display:flex; align-items:center; gap:.9rem; flex-wrap:wrap;}
+    .genlab-actions .engine-caption{margin:0; flex:1 1 18rem;}
+
+    /* ---- the rolled character card: its own darker ground, so it reads as
+       a spec sheet handed to you rather than a third panel of the page ---- */
+    .pcard{
+      background:var(--surface-2);
+      border:1px solid var(--line);
+      border-radius:20px;
+      padding:clamp(1.1rem,2vw,1.4rem);
+      display:flex; flex-direction:column; gap:.95rem;
+    }
+    .pcard-top{display:flex; align-items:flex-start; gap:.9rem;}
+    .pcard-swatches{display:flex; flex-direction:column; gap:5px; flex:none; padding-top:.2rem;}
+    .pcard-swatches .sw{width:36px; height:15px; border-radius:5px; border:1px solid rgba(255,255,255,.16);}
+    .pcard-id{display:flex; flex-direction:column; gap:.22rem; min-width:0;}
+    .pcard-plan{
+      font-family:'Space Mono',monospace; font-size:.63rem; letter-spacing:.16em;
+      text-transform:uppercase; color:var(--accent);
+    }
+    .pcard-name{
+      font-family:'Baloo 2',ui-rounded,'Figtree',sans-serif;
+      font-size:1.3rem; font-weight:700; line-height:1.14; text-wrap:balance;
+    }
+    .pcard-sub{font-family:'Space Mono',monospace; font-size:.66rem; line-height:1.6; color:var(--text-faint);}
+
+    /* Rare rolls get shouted, not listed. Magenta = an exaggeration gene
+       landed in one of its rare tails; teal = kit that changes the
+       silhouette but rolls often. */
+    .gene-flags{display:flex; flex-wrap:wrap; gap:.4rem;}
+    .flag{
+      font-family:'Space Mono',monospace; font-size:.64rem; font-weight:700;
+      letter-spacing:.09em; text-transform:uppercase;
+      padding:.34rem .6rem; border-radius:9px;
+      background:rgba(255,111,216,.15); border:1px solid rgba(255,111,216,.5); color:#ffa3e2;
+    }
+    .flag.kit{background:rgba(111,227,196,.12); border-color:rgba(111,227,196,.42); color:var(--accent-2);}
+    .flag.plain{background:transparent; border-color:var(--line); color:var(--text-faint); font-weight:400;}
+
+    .meters{
+      display:flex; flex-direction:column; gap:.55rem;
+      border-top:1px dashed var(--line-soft); padding-top:.9rem;
+    }
+    .meters-label{
+      font-family:'Space Mono',monospace; font-size:.62rem; letter-spacing:.14em;
+      text-transform:uppercase; color:var(--text-faint);
+    }
+    .meter{display:grid; grid-template-columns:4.3rem 1fr 2.9rem; align-items:center; gap:.55rem;}
+    .meter .m-label{
+      font-family:'Space Mono',monospace; font-size:.63rem; letter-spacing:.05em;
+      text-transform:uppercase; color:var(--text-faint);
+    }
+    .m-track{position:relative; height:10px; border-radius:100px; background:var(--line-soft);}
+    .m-band{position:absolute; top:0; bottom:0; background:rgba(111,227,196,.20); border-radius:100px;}
+    .m-dot{
+      position:absolute; top:50%; width:11px; height:11px; margin:-5.5px 0 0 -5.5px;
+      border-radius:50%; background:var(--accent-2); box-shadow:0 0 0 3px rgba(31,24,54,.9);
+    }
+    .meter.flare .m-dot{background:#ff6fd8;}
+    .m-val{
+      font-family:'Space Mono',monospace; font-size:.7rem; color:var(--text-dim);
+      text-align:right; font-variant-numeric:tabular-nums;
+    }
+    .meter.flare .m-val{color:#ffa3e2; font-weight:700;}
+
+    .pcard-block{border-top:1px dashed var(--line-soft); padding-top:.9rem;}
+    .pcard-block .genome-traits{font-size:.83rem;}
+    .pcard-tune{
+      font-family:'Space Mono',monospace; font-size:.66rem; line-height:1.75;
+      color:var(--text-faint); font-variant-numeric:tabular-nums; margin:0;
+      border-top:1px dashed var(--line-soft); padding-top:.85rem;
+    }
+    .pcard-tune b{color:var(--text-dim); font-weight:700;}
+
+    @media (max-width:860px){
+      .genlab-grid{grid-template-columns:1fr;}
+      .genlab-viewport{aspect-ratio:4/3;}
+    }
+  </style>
+
+  <div class="section-intro">
+    <span class="eyebrow">The generator, as it ships</span>
+    <h2>Roll a pony the way <span class="hl">the game rolls one</span></h2>
+    <p>Every generator on this page above is older than the code it was describing. The genome has since grown
+    the <strong>exaggeration genes</strong> — a leg-length gene that runs from near-vestigial stubs to absurd
+    stilts, a body-size gene with rare tails at both ends, neck and girth multipliers — and the leg count now
+    runs 3 to 7, laid out in rows down the barrel on a travelling-wave phase offset so a seven-legged pony
+    ripples like a centipede instead of stomping. Nearly half of them are wearing a space helmet. This section
+    is a direct port of <code>pony_genome.gd</code>, <code>pony_rig_builder.gd</code> and
+    <code>pony_controller.gd</code> as they exist today: the same weightings, the same three body plans, the
+    same spring constants. Hit <strong>Generate Pony</strong> and you get exactly what a race slot would get.</p>
+  </div>
+
+  <section class="genlab-wrap">
+    <div class="genlab-card">
+      <div class="genlab-head">
+        <span class="direction-tag">Live WebGL prototype · current genome + rig</span>
+        <h3 class="direction-name">One roll of <span class="accent-h">the real dice</span></h3>
+        <span class="badge">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 3v4"/><circle cx="12" cy="12" r="3"/><path d="M12 17v4M3 12h4M17 12h4"/></svg>
+          19 genes · 5 stats · 3 body plans · 3–7 legs
+        </span>
+        <p class="blurb">
+          The card on the right is the whole genome, rolled at the game's own probabilities — so most ponies come
+          out plausible and every so often one arrives on stilts at two and a half times scale. <strong>The rare
+          rolls are called out at the top of the card</strong>; the meters underneath show where each
+          exaggeration gene landed against the band it usually falls in. The pony is framed from the rear
+          three-quarter, the angle you actually race at. Drag to orbit, scroll to zoom.
+        </p>
+      </div>
+
+      <div class="genlab-grid">
+        <div class="genlab-stage">
+          <div class="genlab-viewport" id="gen-viewport">
+            <canvas id="gen-canvas" aria-label="Interactive 3D preview of a single randomly generated space pony, seen from a rear three-quarter angle above a grid track. Its body plan, leg count, leg length, body size, neck and barrel proportions, coat and mane color, wings, horn, gills, extra eyes and space helmet are all rolled from the game's genome generator, and it trots in place on the game's spring-driven leg rig. Drag to orbit the camera."></canvas>
+            <div class="engine-hint" id="gen-hint">drag to orbit · scroll to zoom</div>
+          </div>
+          <div class="genlab-actions">
+            <button type="button" class="engine-btn generate-btn" id="gen-roll">Generate Pony</button>
+            <p class="engine-caption" id="gen-caption">Rolling a genome…</p>
+          </div>
+        </div>
+
+        <article class="pcard" id="gen-card">
+          <p class="engine-caption" style="margin:0">Loading the generator…</p>
+        </article>
+      </div>
+    </div>
+  </section>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -4281,6 +4453,949 @@
     fallback.textContent = 'Live 3D lineup couldn\'t start in this browser. Try a recent Chrome, Firefox, Safari or Edge with WebGL enabled.';
     viewport.appendChild(fallback);
     if (window.console) console.error('Rear-view lineup failed to init:', err);
+  }
+})();
+</script>
+
+<!-- ====================================================================
+     ROUND FOUR — "one roll of the real dice". A single pony, generated
+     and rigged by a line-for-line port of the current Godot source:
+
+       randomGenome()  <- PonyGenome.generate_random()  (pony_genome.gd)
+       buildPony()     <- PonyRigBuilder.build()        (pony_rig_builder.gd)
+       poseRig()       <- _update_leg_rig() / _update_head_and_tail()
+                          and _update_wacky_wobble()    (pony_controller.gd)
+
+     Trait probabilities, stat modifiers, proportion blocks, leg-slot
+     layout and spring constants are all the numbers the game uses, not
+     approximations of them. Independently scoped: own IIFE, own "gen-"
+     ids, own WebGL context.
+     ==================================================================== -->
+<script>
+(function(){
+  var viewport = document.getElementById('gen-viewport');
+  var canvas = document.getElementById('gen-canvas');
+  var hint = document.getElementById('gen-hint');
+  var caption = document.getElementById('gen-caption');
+  var cardEl = document.getElementById('gen-card');
+  var rollBtn = document.getElementById('gen-roll');
+
+  if (!window.THREE || !canvas || !viewport || !cardEl) { return; }
+
+  // ================= pony_genome.gd =================
+  var BODY_PLAN_KEYS = ['ballast-cob', 'slipstream-colt', 'aurora-willow'];
+  var LEG_TYPES = ['hooves', 'tentacles', 'propeller-feet', 'rocket-boots'];
+  var TAIL_TYPES = ['rocket', 'whip', 'propeller'];
+  var MANE_STYLES = ['space-mane', 'antenna-mane'];
+  var ABILITIES = ['dash', 'gravity-flip', 'fart-boost', 'teleport-hiccup', 'magnet-hooves'];
+
+  var PLAN_LABEL = { 'ballast-cob': 'Ballast Cob', 'slipstream-colt': 'Slipstream Colt', 'aurora-willow': 'Aurora Willow' };
+  var LEG_TYPE_LABEL = { 'hooves': 'hooves', 'tentacles': 'tentacle legs', 'propeller-feet': 'propeller-feet', 'rocket-boots': 'rocket-boots' };
+  var TAIL_LABEL = { 'rocket': 'Rocket tail', 'whip': 'Whip tail', 'propeller': 'Propeller tail' };
+  var MANE_LABEL = { 'space-mane': 'Space-mane crest', 'antenna-mane': 'Antenna-mane' };
+  var ABILITY_LABEL = { 'dash': 'Dash', 'gravity-flip': 'Gravity-Flip', 'fart-boost': 'Fart-Boost', 'teleport-hiccup': 'Teleport-Hiccup', 'magnet-hooves': 'Magnet-Hooves' };
+  var HUE_NAMES = ['Crimson', 'Amber', 'Gold', 'Lime', 'Emerald', 'Teal', 'Cyan', 'Azure', 'Indigo', 'Violet', 'Magenta', 'Rose'];
+
+  function rand(a, b){ return a + Math.random() * (b - a); }
+  function randiRange(a, b){ return a + Math.floor(Math.random() * (b - a + 1)); }
+  function pick(a){ return a[(Math.random() * a.length) | 0]; }
+  function clampStat(v){ return Math.max(5, Math.min(99, Math.round(v))); }
+  function hueName(h){ return HUE_NAMES[Math.floor((((h % 1) + 1) % 1) * HUE_NAMES.length) % HUE_NAMES.length]; }
+
+  function randomGenome(){
+    var g = {};
+    g.bodyPlan = pick(BODY_PLAN_KEYS);
+
+    // Usually 4, often 3, with a long tail of extra pairs up to 7.
+    var legR = Math.random();
+    g.legCount = legR < 0.20 ? 3 : (legR < 0.70 ? 4 : (legR < 0.85 ? 5 : (legR < 0.95 ? 6 : 7)));
+    g.legType = pick(LEG_TYPES);
+    g.tailType = pick(TAIL_TYPES);
+
+    // Mostly sensible, with rare runs at both extremes.
+    var sizeR = Math.random();
+    g.size = sizeR < 0.04 ? rand(0.35, 0.55) : (sizeR < 0.08 ? rand(1.9, 2.9) : rand(0.8, 1.35));
+
+    var legScaleR = Math.random();
+    g.legScale = legScaleR < 0.12 ? rand(0.28, 0.5) : (legScaleR < 0.24 ? rand(1.7, 2.5) : rand(0.85, 1.3));
+
+    g.neckScale = Math.random() < 0.75 ? rand(0.65, 1.15) : rand(1.35, 2.1);
+    g.girthScale = rand(0.75, 1.45);
+    g.spaceHelmet = Math.random() < 0.45;
+
+    g.coatHue = Math.random();
+    g.maneHue = (g.coatHue + rand(0.28, 0.72)) % 1;
+    g.maneStyle = pick(MANE_STYLES);
+    g.coatPattern = Math.random() < 0.4 ? 'spotted' : 'solid';
+    g.extraEyes = Math.random() < 0.3;
+    g.wings = Math.random() < 0.35;
+    g.antigravHorn = Math.random() < 0.55;
+    g.gills = Math.random() < 0.3;
+    g.ability = pick(ABILITIES);
+
+    var speed = randiRange(30, 90);
+    var acceleration = randiRange(30, 90);
+    var handling = randiRange(30, 90);
+    var stamina = randiRange(30, 90);
+    var wackiness = randiRange(15, 65);
+
+    if (g.legType === 'rocket-boots') speed += 12;
+    else if (g.legType === 'propeller-feet') acceleration += 12;
+    else if (g.legType === 'tentacles') handling += 12;
+    else if (g.legType === 'hooves') stamina += 12;
+
+    if (g.legCount === 3){ acceleration += 8; handling -= 8; }
+    else if (g.legCount === 4){ handling += 8; stamina += 4; }
+    else {
+      // Extra pairs grip and endure but drag: more legs, more mess.
+      var extra = g.legCount - 4;
+      handling += extra * 4; stamina += extra * 3; speed -= extra * 3;
+    }
+
+    if (g.bodyPlan === 'ballast-cob'){ stamina += 14; speed -= 6; }
+    else if (g.bodyPlan === 'slipstream-colt'){ speed += 14; stamina -= 6; }
+    else if (g.bodyPlan === 'aurora-willow'){ handling += 14; acceleration -= 4; }
+
+    if (g.legScale < 0.6){ speed -= 20; handling += 6; }
+    else if (g.legScale > 1.6){ speed += 10; handling -= 14; }
+    if (g.size < 0.6){ acceleration += 12; stamina -= 12; }
+    else if (g.size > 1.8){ acceleration -= 12; stamina += 10; }
+
+    speed *= 0.85 + g.size * 0.2;
+
+    var mutations = (g.extraEyes ? 1 : 0) + (g.wings ? 1 : 0) + (g.gills ? 1 : 0) + (g.antigravHorn ? 1 : 0);
+    wackiness += mutations * 7;
+    wackiness += Math.abs(g.legCount - 4) * 7;
+    if (g.legType === 'tentacles') wackiness += 6;
+    if (g.legScale < 0.6 || g.legScale > 1.6) wackiness += 12;
+    if (g.size < 0.6 || g.size > 1.8) wackiness += 12;
+    if (g.spaceHelmet) wackiness += 4;
+
+    g.stats = {
+      speed: clampStat(speed), acceleration: clampStat(acceleration), handling: clampStat(handling),
+      stamina: clampStat(stamina), wackiness: clampStat(wackiness)
+    };
+    return g;
+  }
+
+  // The Look Book palette is authored in HSL, and hsl_to_color() in
+  // pony_genome.gd exists so Godot lands on the exact same colors.
+  function hslHex(h, s, l){
+    h = ((h % 1) + 1) % 1;
+    var r, g2, b;
+    if (s <= 0){ r = g2 = b = l; }
+    else {
+      var q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+      var p = 2 * l - q;
+      var h2 = function(t){
+        if (t < 0) t += 1;
+        if (t > 1) t -= 1;
+        if (t < 1/6) return p + (q - p) * 6 * t;
+        if (t < 1/2) return q;
+        if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+        return p;
+      };
+      r = h2(h + 1/3); g2 = h2(h); b = h2(h - 1/3);
+    }
+    return (Math.round(r * 255) << 16) | (Math.round(g2 * 255) << 8) | Math.round(b * 255);
+  }
+  function cssHex(n){ return '#' + ('000000' + n.toString(16)).slice(-6); }
+
+  // ================= pony_rig_builder.gd : BODY_PLANS =================
+  var BODY_PLANS = {
+    'ballast-cob': {
+      barrelW: 0.66, barrelH: 0.62, barrelL: 1.05,
+      chestW: 0.70, chestH: 0.62, chestD: 0.52, chestY: -0.02, chestZ: 0.70,
+      bellyW: 0.62, bellyH: 0.46, bellyD: 0.86, bellyY: -0.20, bellyZ: -0.02,
+      croupW: 0.60, croupH: 0.42, croupD: 0.50, croupY: 0.22, croupZ: -0.62,
+      haunchW: 0.44, haunchH: 0.48, haunchD: 0.46, haunchX: 0.40, haunchY: 0.00, haunchZ: -0.70,
+      neck0Y: 0.40, neck0Z: 0.72, neckCY: 0.86, neckCZ: 0.94, neck1Y: 0.70, neck1Z: 1.30,
+      neckR0: 0.34, neckR1: 0.22, neckSegs: 7, neckWide: 1.00,
+      maneOff: 0.72, maneR: 0.80, forelockR: 0.13,
+      headPitch: -0.48,
+      skullW: 0.25, skullH: 0.27, skullD: 0.29,
+      jawW: 0.23, jawH: 0.17, jawD: 0.22, jawY: -0.13, jawZ: 0.12,
+      muzzleLen: 0.44, muzzleR0: 0.20, muzzleR1: 0.155, muzzleY: -0.07,
+      earR: 0.075, earH: 0.20, earX: 0.14, earY: 0.22, earZ: -0.06, earTilt: 0.30,
+      eyeR: 0.062, eyeX: 0.21, eyeY: 0.05, eyeZ: 0.10,
+      legLen: 1.10, legRTop: 0.155, legRMid: 0.115, legRAnkle: 0.095,
+      hoofR: 0.14, hoofH: 0.13,
+      stanceXF: 0.50, stanceXH: 0.56, stanceZF: 0.72, stanceZH: -0.70,
+      hipY: -0.14, splayF: 0.06, splayH: 0.11,
+      tailY: 0.36, tailZ: -1.00, tailCarry: 0.30, tailLen: 1.05,
+      tailR0: 0.21, tailR1: 0.10, tailWide: 1.05, tailDroop: 0.075, tailPlume: true, tailSway: 0.11
+    },
+    'slipstream-colt': {
+      barrelW: 0.40, barrelH: 0.46, barrelL: 1.12,
+      chestW: 0.44, chestH: 0.56, chestD: 0.52, chestY: 0.02, chestZ: 0.76,
+      bellyW: 0.34, bellyH: 0.28, bellyD: 0.60, bellyY: -0.20, bellyZ: -0.14,
+      croupW: 0.36, croupH: 0.32, croupD: 0.46, croupY: 0.28, croupZ: -0.70,
+      haunchW: 0.27, haunchH: 0.42, haunchD: 0.44, haunchX: 0.21, haunchY: 0.08, haunchZ: -0.76,
+      neck0Y: 0.36, neck0Z: 0.84, neckCY: 0.70, neckCZ: 1.32, neck1Y: 0.76, neck1Z: 1.72,
+      neckR0: 0.24, neckR1: 0.145, neckSegs: 8, neckWide: 0.92,
+      maneOff: 0.34, maneR: 0.50, forelockR: 0.07,
+      headPitch: -0.12,
+      skullW: 0.185, skullH: 0.205, skullD: 0.235,
+      jawW: 0.17, jawH: 0.13, jawD: 0.19, jawY: -0.11, jawZ: 0.10,
+      muzzleLen: 0.52, muzzleR0: 0.148, muzzleR1: 0.10, muzzleY: -0.055,
+      earR: 0.055, earH: 0.19, earX: 0.10, earY: 0.17, earZ: -0.05, earTilt: 0.24,
+      eyeR: 0.048, eyeX: 0.16, eyeY: 0.04, eyeZ: 0.08,
+      legLen: 1.62, legRTop: 0.115, legRMid: 0.082, legRAnkle: 0.062,
+      hoofR: 0.095, hoofH: 0.10,
+      stanceXF: 0.30, stanceXH: 0.30, stanceZF: 0.80, stanceZH: -0.82,
+      hipY: -0.10, splayF: -0.01, splayH: 0.00,
+      tailY: 0.56, tailZ: -1.06, tailCarry: 2.28, tailLen: 1.62,
+      tailR0: 0.14, tailR1: 0.055, tailWide: 0.90, tailDroop: 0.012, tailPlume: false, tailSway: 0.16
+    },
+    'aurora-willow': {
+      barrelW: 0.44, barrelH: 0.50, barrelL: 0.90,
+      chestW: 0.46, chestH: 0.54, chestD: 0.46, chestY: 0.00, chestZ: 0.60,
+      bellyW: 0.38, bellyH: 0.34, bellyD: 0.68, bellyY: -0.18, bellyZ: -0.06,
+      croupW: 0.38, croupH: 0.34, croupD: 0.42, croupY: 0.26, croupZ: -0.56,
+      haunchW: 0.32, haunchH: 0.44, haunchD: 0.40, haunchX: 0.26, haunchY: 0.04, haunchZ: -0.62,
+      neck0Y: 0.42, neck0Z: 0.62, neckCY: 1.30, neckCZ: 1.16, neck1Y: 1.58, neck1Z: 0.96,
+      neckR0: 0.26, neckR1: 0.135, neckSegs: 10, neckWide: 0.95,
+      maneOff: 1.05, maneR: 0.62, forelockR: 0.08,
+      headPitch: -0.95,
+      skullW: 0.175, skullH: 0.20, skullD: 0.22,
+      jawW: 0.16, jawH: 0.13, jawD: 0.18, jawY: -0.10, jawZ: 0.09,
+      muzzleLen: 0.46, muzzleR0: 0.138, muzzleR1: 0.098, muzzleY: -0.05,
+      earR: 0.05, earH: 0.22, earX: 0.095, earY: 0.17, earZ: -0.05, earTilt: 0.20,
+      eyeR: 0.046, eyeX: 0.15, eyeY: 0.035, eyeZ: 0.075,
+      legLen: 1.75, legRTop: 0.105, legRMid: 0.075, legRAnkle: 0.055,
+      hoofR: 0.088, hoofH: 0.095,
+      stanceXF: 0.26, stanceXH: 0.28, stanceZF: 0.66, stanceZH: -0.64,
+      hipY: -0.10, splayF: -0.035, splayH: -0.03,
+      tailY: 0.42, tailZ: -0.86, tailCarry: 0.62, tailLen: 1.78,
+      tailR0: 0.115, tailR1: 0.042, tailWide: 0.85, tailDroop: 0.055, tailPlume: false, tailSway: 0.20
+    }
+  };
+
+  // Leg placement for any count from 3 up: rows walking front-to-back down
+  // the barrel, each a left/right pair (an odd count leaves one row with a
+  // single centered leg), phase offsets forming a travelling wave.
+  function legSlots(count, S){
+    var rows = Math.ceil(count / 2), slots = [], placed = 0;
+    for (var row = 0; row < rows; row++){
+      var t = rows <= 1 ? 0 : row / (rows - 1);
+      var z = S.stanceZF + (S.stanceZH - S.stanceZF) * t;
+      var xSpread = S.stanceXF + (S.stanceXH - S.stanceXF) * t;
+      var splay = S.splayF + (S.splayH - S.splayF) * t;
+      var rowPhase = row * Math.PI * 0.7;
+      if (count - placed === 1){
+        slots.push({ x: 0, z: z, splay: 0, phase: rowPhase });
+        placed += 1;
+      } else {
+        slots.push({ x: -xSpread, z: z, splay: -splay, phase: rowPhase });
+        slots.push({ x: xSpread, z: z, splay: splay, phase: rowPhase + Math.PI });
+        placed += 2;
+      }
+      if (placed >= count) break;
+    }
+    return slots;
+  }
+
+  // ================= card copy =================
+  // Descriptors are read straight off the genome — nothing invented.
+  function epithet(g){
+    var bits = [];
+    if (g.size < 0.6) bits.push('Pocket-sized');
+    else if (g.size > 1.8) bits.push('Colossal');
+    if (g.legScale < 0.6) bits.push('stub-legged');
+    else if (g.legScale > 1.6) bits.push('stilt-legged');
+    if (g.legCount >= 5) bits.push(['', '', '', '', '', 'five', 'six', 'seven'][g.legCount] + '-legged');
+    if (g.neckScale > 1.35) bits.push('long-necked');
+    if (!bits.length) bits.push(g.coatPattern === 'spotted' ? 'Spotted' : hueName(g.coatHue));
+    var lead = bits.shift();
+    var text = lead.charAt(0).toUpperCase() + lead.slice(1);
+    if (bits.length) text += ', ' + bits.join(', ');
+    return text + ' ' + PLAN_LABEL[g.bodyPlan];
+  }
+
+  function flags(g){
+    var out = [];
+    if (g.size < 0.6) out.push({ t: 'Micro build ×' + g.size.toFixed(2), rare: true });
+    else if (g.size > 1.8) out.push({ t: 'Titan build ×' + g.size.toFixed(2), rare: true });
+    if (g.legScale < 0.6) out.push({ t: 'Vestigial legs ×' + g.legScale.toFixed(2), rare: true });
+    else if (g.legScale > 1.6) out.push({ t: 'Absurd stilts ×' + g.legScale.toFixed(2), rare: true });
+    if (g.legCount >= 5) out.push({ t: g.legCount + ' legs', rare: true });
+    if (g.neckScale > 1.35) out.push({ t: 'Swan neck ×' + g.neckScale.toFixed(2), rare: true });
+    if (g.spaceHelmet) out.push({ t: 'Space helmet', rare: false });
+    if (!out.length) out.push({ t: 'Textbook proportions', plain: true });
+    return out;
+  }
+
+  function meterRow(label, value, lo, hi, bandLo, bandHi, flare){
+    var span = hi - lo;
+    var pct = function(v){ return Math.max(0, Math.min(100, (v - lo) / span * 100)); };
+    return '<div class="meter' + (flare ? ' flare' : '') + '">' +
+      '<span class="m-label">' + label + '</span>' +
+      '<span class="m-track">' +
+        '<span class="m-band" style="left:' + pct(bandLo).toFixed(1) + '%;right:' + (100 - pct(bandHi)).toFixed(1) + '%"></span>' +
+        '<span class="m-dot" style="left:' + pct(value).toFixed(1) + '%"></span>' +
+      '</span>' +
+      '<span class="m-val">' + value.toFixed(2) + '×</span>' +
+    '</div>';
+  }
+
+  function pill(label, on){ return '<span class="gene-pill' + (on ? '' : ' off') + '">' + label + '</span>'; }
+
+  function renderCard(g){
+    var coat = cssHex(hslHex(g.coatHue, 0.45, 0.58));
+    var mane = cssHex(hslHex(g.maneHue, 0.5, 0.62));
+
+    var flagHtml = flags(g).map(function(f){
+      return '<span class="flag' + (f.plain ? ' plain' : (f.rare ? '' : ' kit')) + '">' + f.t + '</span>';
+    }).join('');
+
+    // pony_controller.gd's build_from_genome(): stats -> movement tuning.
+    var maxSpeed = 9.0 * (0.42 + g.stats.speed / 100);
+    var accel = 7.0 * (0.45 + g.stats.acceleration / 100 * 0.95);
+    var turn = 2.4 * (0.6 + g.stats.handling / 100 * 0.8);
+    var chaos = 0.5 + g.stats.wackiness / 100;
+
+    var STAT_ORDER = [['speed', 'Speed'], ['acceleration', 'Accel'], ['handling', 'Handling'], ['stamina', 'Stamina'], ['wackiness', 'Chaos']];
+
+    cardEl.innerHTML =
+      '<div class="pcard-top">' +
+        '<div class="pcard-swatches">' +
+          '<span class="sw" style="background:' + coat + '" title="coat"></span>' +
+          '<span class="sw" style="background:' + mane + '" title="mane"></span>' +
+        '</div>' +
+        '<div class="pcard-id">' +
+          '<span class="pcard-plan">' + PLAN_LABEL[g.bodyPlan] + '</span>' +
+          '<span class="pcard-name">' + epithet(g) + '</span>' +
+          '<span class="pcard-sub">' + hueName(g.coatHue) + ' ' + (g.coatPattern === 'spotted' ? 'spotted' : 'solid') +
+            ' coat · ' + hueName(g.maneHue) + ' mane</span>' +
+        '</div>' +
+      '</div>' +
+
+      '<div class="gene-flags">' + flagHtml + '</div>' +
+
+      '<div class="meters">' +
+        '<span class="meters-label">Exaggeration genes · teal band = the usual roll</span>' +
+        meterRow('Size', g.size, 0.35, 2.9, 0.8, 1.35, g.size < 0.6 || g.size > 1.8) +
+        meterRow('Legs', g.legScale, 0.28, 2.5, 0.85, 1.3, g.legScale < 0.6 || g.legScale > 1.6) +
+        meterRow('Neck', g.neckScale, 0.65, 2.1, 0.65, 1.15, g.neckScale > 1.35) +
+        meterRow('Girth', g.girthScale, 0.75, 1.45, 0.75, 1.45, false) +
+      '</div>' +
+
+      '<div class="pcard-block">' +
+        '<dl class="genome-traits">' +
+          '<dt>Legs</dt><dd>' + g.legCount + ' × ' + LEG_TYPE_LABEL[g.legType] + '</dd>' +
+          '<dt>Tail</dt><dd>' + TAIL_LABEL[g.tailType] + '</dd>' +
+          '<dt>Mane</dt><dd>' + MANE_LABEL[g.maneStyle] + '</dd>' +
+          '<dt>Mutations</dt><dd>' +
+            pill('Antigrav horn', g.antigravHorn) +
+            pill('Extra eyes', g.extraEyes) +
+            pill('Wings', g.wings) +
+            pill('Gills', g.gills) +
+          '</dd>' +
+          '<dt>Ability</dt><dd>' + ABILITY_LABEL[g.ability] + '</dd>' +
+        '</dl>' +
+      '</div>' +
+
+      '<div class="pcard-block genome-stats">' +
+        STAT_ORDER.map(function(s){
+          var v = g.stats[s[0]];
+          return '<div class="stat-row"><span class="stat-label">' + s[1] + '</span>' +
+            '<span class="stat-track"><span class="stat-fill" style="width:' + v + '%"></span></span>' +
+            '<span class="stat-value">' + v + '</span></div>';
+        }).join('') +
+      '</div>' +
+
+      '<p class="pcard-tune">On track: top speed <b>' + maxSpeed.toFixed(1) + '</b> m/s · accel <b>' +
+        accel.toFixed(1) + '</b> · turn <b>' + turn.toFixed(2) + '</b> rad/s · wobble &amp; drift <b>×' +
+        chaos.toFixed(2) + '</b></p>';
+  }
+
+  try {
+
+    var reduceMotion = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+
+    // ---------- renderer / scene / camera ----------
+    var renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+
+    var scene = new THREE.Scene();
+    scene.fog = new THREE.Fog(0x1c1438, 16, 46);
+    var camera = new THREE.PerspectiveCamera(34, 1.25, 0.1, 140);
+    var camTarget = new THREE.Vector3(0, 1.2, 0);
+
+    // Rear three-quarter, the race camera: theta is measured so cos(theta)
+    // scales +Z, and the rig is built head-toward +Z, so theta near PI puts
+    // the camera astern.
+    var camTheta = Math.PI * 0.855, camPhi = 1.22, camRadius = 6.5;
+
+    function resize(){
+      var w = viewport.clientWidth, h = viewport.clientHeight;
+      if (w < 2 || h < 2) return;
+      renderer.setSize(w, h, false);
+      camera.aspect = w / h;
+      camera.updateProjectionMatrix();
+    }
+    resize();
+    window.addEventListener('resize', resize);
+    if (window.ResizeObserver) { new ResizeObserver(resize).observe(viewport); }
+
+    function updateCamera(){
+      camPhi = Math.max(0.32, Math.min(Math.PI - 0.32, camPhi));
+      camera.position.set(
+        camTarget.x + camRadius * Math.sin(camPhi) * Math.sin(camTheta),
+        camTarget.y + camRadius * Math.cos(camPhi),
+        camTarget.z + camRadius * Math.sin(camPhi) * Math.cos(camTheta)
+      );
+      camera.lookAt(camTarget);
+    }
+    updateCamera();
+
+    // ---------- lights ----------
+    scene.add(new THREE.AmbientLight(0x4a4470, 0.74));
+    var key = new THREE.DirectionalLight(0xfff1de, 1.05);
+    key.position.set(3.5, 6, -3.5);
+    scene.add(key);
+    var rim = new THREE.DirectionalLight(0x6fe3c4, 0.5);
+    rim.position.set(-5, 2.5, 5);
+    scene.add(rim);
+    var fillWarm = new THREE.DirectionalLight(0xff9a56, 0.28);
+    fillWarm.position.set(4, -1.5, 2.5);
+    scene.add(fillWarm);
+
+    // Grid stays a fixed 1-unit cell so a 0.4× pony and a 2.6× one are
+    // legibly different sizes rather than both filling the frame.
+    var grid = new THREE.GridHelper(60, 60, 0x6b5aa8, 0x372c63);
+    grid.material.transparent = true;
+    grid.material.opacity = 0.45;
+    scene.add(grid);
+
+    // ---------- shared geometry / material helpers ----------
+    var BLOB = new THREE.SphereGeometry(1, 18, 12);
+    var owned = [];   // geometries + materials belonging to the current pony
+
+    function mat(hex, extra){
+      var m = new THREE.MeshPhysicalMaterial(Object.assign({
+        color: hex, roughness: 0.26, metalness: 0.14, clearcoat: 0.5, clearcoatRoughness: 0.3
+      }, extra || {}));
+      owned.push(m);
+      return m;
+    }
+    function blob(material, sx, sy, sz, x, y, z){
+      var m = new THREE.Mesh(BLOB, material);
+      m.scale.set(sx, sy, sz);
+      m.position.set(x || 0, y || 0, z || 0);
+      return m;
+    }
+    function taper(material, rTop, rBottom, h, seg){
+      var geo = new THREE.CylinderGeometry(rTop, rBottom, h, seg || 12, 1, false);
+      owned.push(geo);
+      return new THREE.Mesh(geo, material);
+    }
+    function box(material, w, h, d){
+      var geo = new THREE.BoxGeometry(w, h, d);
+      owned.push(geo);
+      return new THREE.Mesh(geo, material);
+    }
+    function qbez(p0y, p0z, p1y, p1z, p2y, p2z, t){
+      var it = 1 - t;
+      return { y: it*it*p0y + 2*it*t*p1y + t*t*p2y, z: it*it*p0z + 2*it*t*p1z + t*t*p2z };
+    }
+
+    // ---------- the builder (pony_rig_builder.gd) ----------
+    function buildPony(g){
+      var S = BODY_PLANS[g.bodyPlan];
+
+      // Exaggeration genes stretch the plan before anything is built from it.
+      var legLen = S.legLen * g.legScale;
+      var girth = g.girthScale;
+      var neck1Y = S.neck0Y + (S.neck1Y - S.neck0Y) * g.neckScale;
+      var neck1Z = S.neck0Z + (S.neck1Z - S.neck0Z) * g.neckScale;
+      var neckCY = S.neck0Y + (S.neckCY - S.neck0Y) * g.neckScale;
+      var neckCZ = S.neck0Z + (S.neckCZ - S.neck0Z) * g.neckScale;
+
+      var coat = mat(hslHex(g.coatHue, 0.45, 0.58));
+      var coatDark = mat(hslHex(g.coatHue, 0.45, 0.44));
+      var maneMat = mat(hslHex(g.maneHue, 0.5, 0.62), { roughness: 0.42, clearcoat: 0.25 });
+      var hoofMat = mat(0x2b2038, { roughness: 0.45, clearcoat: 0.25 });
+      var eyeWhite = mat(0xf3eefb, { roughness: 0.2, clearcoat: 0.8 });
+      var eyePupil = mat(0x241c40, { roughness: 0.15, clearcoat: 0.9 });
+      var flameOrange = mat(0xff9a56, { emissive: 0xff9a56, emissiveIntensity: 0.6, roughness: 0.5 });
+      var flameYellow = mat(0xffd166, { emissive: 0xffd166, emissiveIntensity: 0.6, roughness: 0.6 });
+
+      // holder carries the size gene (visual.scale in the game); rig sits on
+      // the ground on its own gene-scaled legs, so stilts don't sink.
+      var holder = new THREE.Group();
+      holder.scale.setScalar(g.size);
+      var root = new THREE.Group();
+      root.position.y = legLen - S.hipY;
+      holder.add(root);
+
+      var body = new THREE.Group();
+      root.add(body);
+
+      // torso: barrel, chest, belly, croup, then the two haunch domes that
+      // ARE the rear silhouette
+      body.add(blob(coat, S.barrelW * girth, S.barrelH * girth, S.barrelL, 0, 0, 0));
+      body.add(blob(coat, S.chestW * girth, S.chestH * girth, S.chestD, 0, S.chestY, S.chestZ));
+      body.add(blob(coatDark, S.bellyW * girth, S.bellyH * girth, S.bellyD, 0, S.bellyY, S.bellyZ));
+      body.add(blob(coat, S.croupW * girth, S.croupH * girth, S.croupD, 0, S.croupY, S.croupZ));
+      body.add(blob(coat, S.haunchW * girth, S.haunchH * girth, S.haunchD, -S.haunchX * girth, S.haunchY, S.haunchZ));
+      body.add(blob(coat, S.haunchW * girth, S.haunchH * girth, S.haunchD,  S.haunchX * girth, S.haunchY, S.haunchZ));
+
+      if (g.coatPattern === 'spotted'){
+        var spotMat = mat(hslHex(g.maneHue, 0.5, 0.66));
+        [[0.34, 0.12, 0.1], [-0.3, 0.2, -0.4], [0.26, -0.1, -0.55]].forEach(function(p){
+          var sr = S.barrelW * 0.32;
+          body.add(blob(spotMat, sr, sr * 0.8, sr, p[0], p[1], p[2]));
+        });
+      }
+
+      // neck: ellipsoids along a quadratic arc
+      var i, t, p, r;
+      for (i = 0; i < S.neckSegs; i++){
+        t = i / (S.neckSegs - 1);
+        p = qbez(S.neck0Y, S.neck0Z, neckCY, neckCZ, neck1Y, neck1Z, t);
+        r = S.neckR0 + (S.neckR1 - S.neckR0) * t;
+        body.add(blob(coat, r * S.neckWide, r * 1.06, r, 0, p.y, p.z));
+      }
+
+      if (g.maneStyle === 'space-mane'){
+        // crest riding the outside of the arc, so it reads from astern
+        var maneSteps = S.neckSegs * 4;
+        for (i = 0; i <= maneSteps; i++){
+          t = i / maneSteps;
+          p = qbez(S.neck0Y, S.neck0Z, neckCY, neckCZ, neck1Y, neck1Z, t);
+          r = S.neckR0 + (S.neckR1 - S.neckR0) * t;
+          var mr = r * S.maneR;
+          body.add(blob(maneMat, mr * 0.8, mr * 1.1, mr,
+            0, p.y + r * S.maneOff * 0.52, p.z - r * S.maneOff * 0.88));
+        }
+      } else {
+        // antenna-mane: a pair of stalks with glowing beads
+        var pTop = qbez(S.neck0Y, S.neck0Z, neckCY, neckCZ, neck1Y, neck1Z, 0.75);
+        [-1, 1].forEach(function(side){
+          var stalk = taper(maneMat, S.neckR1 * 0.16, S.neckR1 * 0.24, S.neckR0 * 1.6, 6);
+          stalk.position.set(side * S.neckR0 * 0.4, pTop.y + S.neckR0 * 0.9, pTop.z - S.neckR0 * 0.3);
+          stalk.rotation.x = -0.35;
+          body.add(stalk);
+          var beadR = S.neckR1 * 0.5;
+          body.add(blob(maneMat, beadR, beadR, beadR,
+            side * S.neckR0 * 0.4, pTop.y + S.neckR0 * 1.7, pTop.z - S.neckR0 * 0.7));
+        });
+      }
+
+      // head — the anti-pig kit: long tapered muzzle, real jaw, pricked ears
+      var head = new THREE.Group();
+      head.position.set(0, neck1Y, neck1Z);
+      head.rotation.x = S.headPitch;
+      body.add(head);
+
+      head.add(blob(coat, S.skullW, S.skullH, S.skullD, 0, 0, 0));
+      head.add(blob(coat, S.jawW, S.jawH, S.jawD, 0, S.jawY, S.jawZ));
+
+      var muzzle = taper(coat, S.muzzleR1, S.muzzleR0, S.muzzleLen, 14);
+      muzzle.rotation.x = Math.PI / 2;
+      muzzle.position.set(0, S.muzzleY, S.skullD * 0.42 + S.muzzleLen * 0.5);
+      head.add(muzzle);
+      head.add(blob(coat, S.muzzleR1 * 1.06, S.muzzleR1 * 1.02, S.muzzleR1 * 0.85,
+        0, S.muzzleY, S.skullD * 0.42 + S.muzzleLen));
+      head.add(blob(coatDark, S.muzzleR1 * 0.9, S.muzzleR1 * 0.55, S.muzzleR1 * 0.6,
+        0, S.muzzleY - S.muzzleR1 * 0.4, S.skullD * 0.42 + S.muzzleLen * 0.92));
+
+      [-1, 1].forEach(function(side){
+        var ear = taper(coat, 0.004, S.earR, S.earH, 8);
+        ear.position.set(side * S.earX, S.earY, S.earZ);
+        ear.rotation.z = -side * S.earTilt;
+        ear.rotation.x = -0.18;
+        head.add(ear);
+
+        var eye = new THREE.Group();
+        eye.position.set(side * S.eyeX, S.eyeY, S.eyeZ);
+        eye.add(blob(eyeWhite, S.eyeR, S.eyeR, S.eyeR, 0, 0, 0));
+        eye.add(blob(eyePupil, S.eyeR * 0.6, S.eyeR * 0.6, S.eyeR * 0.6, side * S.eyeR * 0.55, 0, S.eyeR * 0.5));
+        head.add(eye);
+
+        if (g.extraEyes){
+          var eye2 = new THREE.Group();
+          eye2.position.set(side * S.eyeX * 0.55, S.eyeY + S.skullH * 0.62, S.eyeZ * 0.7);
+          var r2 = S.eyeR * 0.66;
+          eye2.add(blob(eyeWhite, r2, r2, r2, 0, 0, 0));
+          eye2.add(blob(eyePupil, r2 * 0.6, r2 * 0.6, r2 * 0.6, 0, 0, r2 * 0.5));
+          head.add(eye2);
+        }
+      });
+
+      head.add(blob(maneMat, S.forelockR * 1.2, S.forelockR, S.forelockR,
+        0, S.skullH * 0.72, -S.skullD * 0.28));
+
+      var hornGlow = null;
+      if (g.antigravHorn){
+        var hornHue = (g.coatHue + 0.45) % 1;
+        var hornMat = mat(hslHex(hornHue, 0.5, 0.75), {
+          emissive: hslHex(hornHue, 0.6, 0.55), emissiveIntensity: 0.6, roughness: 0.2
+        });
+        var horn = taper(hornMat, 0.0, S.skullW * 0.22, S.skullH * 2.2, 6);
+        horn.position.set(0, S.skullH * 1.2, -S.skullD * 0.1);
+        horn.rotation.x = -0.25;
+        head.add(horn);
+        var glowR = S.skullW * 0.2;
+        hornGlow = blob(mat(hslHex(hornHue, 0.5, 0.72), { emissive: hslHex(hornHue, 0.5, 0.72), emissiveIntensity: 0.8 }),
+          glowR, glowR, glowR, 0, S.skullH * 2.3, -S.skullD * 0.2);
+        head.add(hornGlow);
+      }
+
+      // Space helmet: a bubble big enough to clear the muzzle, plus a seal
+      // ring. A horn pokes straight through it, on purpose.
+      if (g.spaceHelmet){
+        var reach = S.skullD * 0.42 + S.muzzleLen;
+        var domeR = Math.max(S.skullW, S.skullH) * 1.2 + reach * 0.46;
+        var glass = mat(0xb8e0ff, {
+          transparent: true, opacity: 0.26, side: THREE.DoubleSide,
+          roughness: 0.04, metalness: 0.0, clearcoat: 1.0
+        });
+        head.add(blob(glass, domeR, domeR * 1.02, domeR * 1.12, 0, S.muzzleY * 0.35, reach * 0.4));
+        var ringMat = mat(0xc7ccdb, { roughness: 0.3, metalness: 0.55 });
+        var ring = taper(ringMat, domeR * 0.66, domeR * 0.72, S.skullH * 0.2, 14);
+        ring.rotation.x = Math.PI / 2;
+        ring.position.set(0, S.muzzleY * 0.35, reach * 0.4 - domeR * 0.92);
+        head.add(ring);
+      }
+
+      if (g.gills){
+        var gillMat = mat(hslHex(0.5, 0.55, 0.6), { emissive: 0x6fe3c4, emissiveIntensity: 0.4 });
+        [-1, 1].forEach(function(side){
+          for (var k = 0; k < 3; k++){
+            body.add(blob(gillMat, S.neckR0 * 0.1, S.neckR0 * 0.34, S.neckR0 * 0.12,
+              side * S.neckR0 * 0.9, S.neck0Y + 0.1 - k * S.neckR0 * 0.4, S.neck0Z));
+          }
+        });
+      }
+
+      var wings = [];
+      if (g.wings){
+        var wingMat = mat(hslHex(g.maneHue, 0.5, 0.66), { transparent: true, opacity: 0.88, side: THREE.DoubleSide });
+        [-1, 1].forEach(function(side){
+          var wing = taper(wingMat, 0.0, S.barrelW * 1.1, S.barrelH * 0.24, 3);
+          wing.position.set(side * S.barrelW * 1.15, S.barrelH * 0.5, -S.barrelL * 0.1);
+          wing.rotation.z = side * (Math.PI / 2) * 0.62;
+          wing.rotation.y = side * 0.3;
+          wing.rotation.x = -0.15;
+          body.add(wing);
+          wings.push(wing);
+        });
+      }
+
+      // legs: two-bone hip -> knee, generalized to any count
+      var legs = [], spinners = [], flames = [];
+      legSlots(g.legCount, S).forEach(function(slot){
+        var hip = new THREE.Group();
+        hip.position.set(slot.x, S.hipY, slot.z);
+        hip.rotation.z = slot.splay;
+        body.add(hip);
+
+        var upperLen = legLen * 0.55, lowerLen = legLen * 0.45;
+        var upper = taper(coat, S.legRMid, S.legRTop, upperLen, 10);
+        upper.position.y = -upperLen / 2;
+        hip.add(upper);
+
+        var knee = new THREE.Group();
+        knee.position.y = -upperLen;
+        hip.add(knee);
+        var kr = S.legRMid * 1.22;
+        knee.add(blob(coat, kr, kr, kr, 0, 0, 0));
+
+        var lower = taper(coatDark, S.legRAnkle, S.legRMid * 0.94, lowerLen, 10);
+        lower.position.y = -lowerLen / 2;
+        knee.add(lower);
+
+        // the leg_type gene decides what's on the end
+        if (g.legType === 'rocket-boots'){
+          var flameGroup = new THREE.Group();
+          flameGroup.position.y = -lowerLen;
+          knee.add(flameGroup);
+          var outer = taper(flameOrange, 0.0, S.hoofR * 1.2, S.hoofR * 2.6, 6);
+          outer.rotation.x = Math.PI;
+          outer.position.y = -S.hoofR * 1.1;
+          flameGroup.add(outer);
+          var inner = taper(flameYellow, 0.0, S.hoofR * 0.7, S.hoofR * 1.5, 6);
+          inner.rotation.x = Math.PI;
+          inner.position.y = -S.hoofR * 0.6;
+          flameGroup.add(inner);
+          flames.push(flameGroup);
+        } else if (g.legType === 'propeller-feet'){
+          var prop = new THREE.Group();
+          prop.position.y = -lowerLen - S.hoofR * 0.3;
+          knee.add(prop);
+          [0, Math.PI / 2].forEach(function(rot){
+            var blade = box(coatDark, S.hoofR * 5.0, S.hoofR * 0.22, S.hoofR * 1.0);
+            blade.rotation.y = rot;
+            prop.add(blade);
+          });
+          spinners.push({ obj: prop, axis: 'y', rate: 22 });
+        } else if (g.legType === 'tentacles'){
+          var tipR = S.legRAnkle * 1.3;
+          knee.add(blob(coatDark, tipR, tipR, tipR, 0, -lowerLen, 0));
+        } else {
+          var hoof = taper(hoofMat, S.hoofR, S.hoofR * 0.9, S.hoofH, 10);
+          hoof.position.y = -lowerLen - S.hoofH * 0.35;
+          knee.add(hoof);
+        }
+
+        legs.push({ hip: hip, knee: knee, phase: slot.phase });
+      });
+
+      // tail: a chain of blobs walking along a carriage direction
+      var tail = new THREE.Group();
+      tail.position.set(0, S.tailY, S.tailZ);
+      body.add(tail);
+      var dock = S.tailR0 * 0.95;
+      tail.add(blob(coat, dock, dock, dock, 0, 0, 0));
+
+      var dy = -Math.cos(S.tailCarry), dz = -Math.sin(S.tailCarry);
+      var py = 0, pz = 0, travelled = 0, guard = 0, tipY = 0, tipZ = 0;
+      while (travelled < S.tailLen && guard < 80){
+        guard++;
+        t = Math.min(1, travelled / S.tailLen);
+        r = S.tailR0 + (S.tailR1 - S.tailR0) * t;
+        tail.add(blob(maneMat, r * S.tailWide, r, r, 0, py, pz));
+        if (S.tailPlume && guard > 1 && guard % 2 === 0 && t < 0.94){
+          tail.add(blob(maneMat, r * 0.74, r * 0.74, r * 0.74,  r * 0.85, py, pz));
+          tail.add(blob(maneMat, r * 0.74, r * 0.74, r * 0.74, -r * 0.85, py, pz));
+        }
+        var stepLen = Math.max(0.025, r * 0.58);
+        py += dy * stepLen; pz += dz * stepLen; travelled += stepLen;
+        dy -= S.tailDroop * (stepLen / 0.12);
+        var dl = Math.sqrt(dy * dy + dz * dz) || 1;
+        dy /= dl; dz /= dl;
+        tipY = py; tipZ = pz;
+      }
+
+      // the tail_type gene decorates the end of the chain
+      if (g.tailType === 'rocket'){
+        var tOuter = taper(flameOrange, 0.0, S.tailR1 * 1.9, S.tailR1 * 4.4, 6);
+        tOuter.rotation.x = Math.PI * 0.42;
+        tOuter.position.set(0, tipY, tipZ - S.tailR1 * 1.6);
+        tail.add(tOuter);
+        var tInner = taper(flameYellow, 0.0, S.tailR1 * 1.1, S.tailR1 * 2.6, 6);
+        tInner.rotation.x = Math.PI * 0.42;
+        tInner.position.set(0, tipY + S.tailR1 * 0.3, tipZ - S.tailR1 * 1.2);
+        tail.add(tInner);
+      } else if (g.tailType === 'propeller'){
+        var tProp = new THREE.Group();
+        tProp.position.set(0, tipY, tipZ - S.tailR1 * 1.4);
+        tail.add(tProp);
+        [0, Math.PI / 2].forEach(function(rot){
+          var blade = box(coatDark, S.tailR1 * 7.0, S.tailR1 * 0.35, S.tailR1 * 1.6);
+          blade.rotation.z = rot;
+          tProp.add(blade);
+        });
+        spinners.push({ obj: tProp, axis: 'z', rate: 16 });
+      }
+      // 'whip' is just the bare chain — its character is in the sway
+
+      return {
+        genome: g, holder: holder, root: root, body: body, head: head, tail: tail,
+        legs: legs, wings: wings, spinners: spinners, flames: flames, hornGlow: hornGlow,
+        headPitch: S.headPitch, tailSway: S.tailSway,
+        // per-joint spring state, exactly the arrays pony_controller.gd keeps
+        hipAngle: legs.map(function(){ return 0; }), hipVel: legs.map(function(){ return 0; }),
+        kneeAngle: legs.map(function(){ return 0; }), kneeVel: legs.map(function(){ return 0; }),
+        headAngle: new THREE.Vector3(), headVel: new THREE.Vector3(),
+        tailAngle: new THREE.Vector3(), tailVel: new THREE.Vector3(),
+        walkTime: 0, wobbleTime: 0,
+        // stats -> movement tuning, per build_from_genome()
+        speedRatio: Math.min(1, 0.45 + g.stats.speed / 100 * 0.5),
+        chaos: 0.5 + g.stats.wackiness / 100
+      };
+    }
+
+    // ---------- animation constants, straight off pony_controller.gd ----------
+    var LEG_SWING_FREQ = 9.0, LEG_SWING_AMP = 0.9, KNEE_BEND_AMP = 1.1;
+    var HIP_K = 26.0, HIP_D = 3.0, KNEE_K = 16.0, KNEE_D = 1.8, IDLE_DANGLE = 0.22;
+    var HEAD_K = 34.0, HEAD_D = 3.4, TAIL_K = 18.0, TAIL_D = 1.9, TAIL_SWOOSH = 1.7, TURN_WHIP = 3.0;
+    var TAIL_LIMIT = new THREE.Vector3(0.52, 0.75, 0.75);
+    var HEAD_LIMIT = new THREE.Vector3(0.9, 0.55, 0.45);
+    var WOBBLE_SPEED = 14.0, WOBBLE_AMOUNT = 0.12, BOB_AMOUNT = 0.08;
+
+    function springStep(current, vel, target, k, d, dt){
+      var accel = (target - current) * k - vel * d;
+      var nv = vel + accel * dt;
+      return [current + nv * dt, nv];
+    }
+    // Hard joint stop: clamp to center ± limit and kill the velocity on any
+    // axis that hit its stop, so the joint rests instead of springing back.
+    function clampJoint(angle, vel, limit, center){
+      ['x', 'y', 'z'].forEach(function(ax){
+        var lo = center[ax] - limit[ax], hi = center[ax] + limit[ax];
+        if (angle[ax] < lo){ angle[ax] = lo; if (vel[ax] < 0) vel[ax] = 0; }
+        else if (angle[ax] > hi){ angle[ax] = hi; if (vel[ax] > 0) vel[ax] = 0; }
+      });
+    }
+
+    function poseRig(P, dt, t){
+      var sr = P.speedRatio;
+      P.walkTime += dt * LEG_SWING_FREQ * (0.3 + sr);
+      var wt = P.walkTime;
+
+      for (var i = 0; i < P.legs.length; i++){
+        var L = P.legs[i];
+        var phase = wt + L.phase;
+        // The idle term never scales to zero, so legs keep drifting in zero g.
+        var dangle = Math.sin(wt * 0.23 + i * 1.7) * IDLE_DANGLE;
+        var hipTarget = Math.sin(phase) * LEG_SWING_AMP * sr + dangle;
+        var kneeTarget = Math.max(Math.sin(phase - 0.6), 0) * KNEE_BEND_AMP * sr + Math.abs(dangle) * 0.5;
+
+        var hr = springStep(P.hipAngle[i], P.hipVel[i], hipTarget, HIP_K, HIP_D, dt);
+        P.hipAngle[i] = hr[0]; P.hipVel[i] = hr[1];
+        L.hip.rotation.x = hr[0];
+
+        var kr = springStep(P.kneeAngle[i], P.kneeVel[i], kneeTarget, KNEE_K, KNEE_D, dt);
+        P.kneeAngle[i] = kr[0]; P.kneeVel[i] = kr[1];
+        L.knee.rotation.x = kr[0];
+      }
+
+      // No steering input in a preview, so the head/tail whip is driven by a
+      // slow weave standing in for the race's turn rate.
+      var whip = Math.max(-1, Math.min(1, Math.sin(t * 0.6) * 0.34 * TURN_WHIP / 3.0));
+      var energy = 0.35 + sr;
+
+      var ht = [
+        P.headPitch + Math.sin(wt * 0.9 + 0.6) * 0.22 * energy,
+        -whip * 0.3,
+        Math.sin(wt * 0.42) * 0.2 * energy + whip * 0.22
+      ];
+      ['x', 'y', 'z'].forEach(function(ax, n){
+        var s = springStep(P.headAngle[ax], P.headVel[ax], ht[n], HEAD_K, HEAD_D, dt);
+        P.headAngle[ax] = s[0]; P.headVel[ax] = s[1];
+      });
+      clampJoint(P.headAngle, P.headVel, HEAD_LIMIT, { x: P.headPitch, y: 0, z: 0 });
+      P.head.rotation.set(P.headAngle.x, P.headAngle.y, P.headAngle.z);
+
+      var sway = P.tailSway * TAIL_SWOOSH;
+      var tt = [
+        Math.sin(wt * 0.5 + 1.1) * sway * 0.5 * energy,
+        whip * 0.45,
+        Math.sin(wt * 0.62) * sway * energy - whip * 0.5
+      ];
+      ['x', 'y', 'z'].forEach(function(ax, n){
+        var s = springStep(P.tailAngle[ax], P.tailVel[ax], tt[n], TAIL_K, TAIL_D, dt);
+        P.tailAngle[ax] = s[0]; P.tailVel[ax] = s[1];
+      });
+      clampJoint(P.tailAngle, P.tailVel, TAIL_LIMIT, { x: 0, y: 0, z: 0 });
+      P.tail.rotation.set(P.tailAngle.x, P.tailAngle.y, P.tailAngle.z);
+
+      // _update_wacky_wobble(): chaos scales both the wobble and the drift.
+      P.wobbleTime += dt * WOBBLE_SPEED * (0.3 + sr);
+      var amount = WOBBLE_AMOUNT * P.chaos;
+      P.root.rotation.z = Math.sin(P.wobbleTime) * amount * sr;
+      P.root.rotation.x = Math.cos(P.wobbleTime * 0.5) * amount * 0.5 * sr;
+      P.body.position.y = Math.abs(Math.sin(P.wobbleTime)) * BOB_AMOUNT * sr;
+
+      P.spinners.forEach(function(sp){ sp.obj.rotation[sp.axis] += dt * sp.rate; });
+      P.flames.forEach(function(f, n){
+        var s = 0.82 + Math.abs(Math.sin(t * 11 + n * 1.7)) * 0.4;
+        f.scale.set(1, s, 1);
+      });
+      P.wings.forEach(function(w, n){
+        w.rotation.x = -0.15 + Math.sin(t * 4 + n * Math.PI) * 0.16;
+      });
+      if (P.hornGlow){
+        var hs = 0.85 + Math.sin(t * 3.1) * 0.2;
+        P.hornGlow.scale.set(hs, hs, hs);
+      }
+    }
+
+    // ---------- generate / rebuild ----------
+    var pony = null;
+
+    function disposeCurrent(){
+      if (!pony) return;
+      scene.remove(pony.holder);
+      pony.holder.traverse(function(o){
+        if (o.isMesh && o.geometry && o.geometry !== BLOB) o.geometry.dispose();
+      });
+      owned.forEach(function(res){ if (res && res.dispose) res.dispose(); });
+      owned = [];
+      pony = null;
+    }
+
+    // Frame whatever came out of the dice: a 0.4× pony and a 2.6× one need
+    // very different distances, and stilts move the whole mass upward.
+    function frame(P){
+      var bboxTarget = new THREE.Box3().setFromObject(P.holder);
+      var size = new THREE.Vector3(), center = new THREE.Vector3();
+      bboxTarget.getSize(size);
+      bboxTarget.getCenter(center);
+      camTarget.set(0, center.y, 0);
+      var tanV = Math.tan((camera.fov * Math.PI / 180) / 2);
+      var tanH = tanV * Math.max(0.6, camera.aspect);
+      var fit = Math.max((size.y * 0.5) / tanV, (size.x * 0.5) / tanH, (size.z * 0.5) / tanH);
+      camRadius = Math.max(2.5, Math.min(30, fit * 1.25));
+      updateCamera();
+    }
+
+    function generate(){
+      var g = randomGenome();
+      disposeCurrent();
+      pony = buildPony(g);
+      scene.add(pony.holder);
+      renderCard(g);
+      frame(pony);
+      if (caption){
+        caption.textContent = 'Rolled: ' + PLAN_LABEL[g.bodyPlan].toLowerCase() + ', ' + g.legCount + ' × ' +
+          LEG_TYPE_LABEL[g.legType] + ' at ' + g.legScale.toFixed(2) + '× length, body ' + g.size.toFixed(2) + '×' +
+          (g.spaceHelmet ? ', helmeted' : '') + '.';
+      }
+      if (reduceMotion) step(0.016, 0.4);
+      return g;
+    }
+
+    function step(dt, t){
+      if (pony) poseRig(pony, dt, t);
+      renderer.render(scene, camera);
+    }
+
+    var clock = new THREE.Clock();
+    function tick(){
+      requestAnimationFrame(tick);
+      var dt = Math.min(clock.getDelta(), 0.05);
+      step(dt, clock.getElapsedTime());
+    }
+
+    generate();
+    if (reduceMotion) { step(0.016, 0.4); } else { tick(); }
+
+    if (rollBtn) rollBtn.addEventListener('click', function(){ generate(); });
+
+    // ---------- drag-orbit ----------
+    var dragging = false, lastX = 0, lastY = 0;
+    canvas.addEventListener('pointerdown', function(e){
+      canvas.setPointerCapture(e.pointerId);
+      dragging = true; lastX = e.clientX; lastY = e.clientY;
+      if (hint) hint.style.opacity = '0';
+    });
+    canvas.addEventListener('pointermove', function(e){
+      if (!dragging) return;
+      camTheta -= (e.clientX - lastX) * 0.008;
+      camPhi -= (e.clientY - lastY) * 0.008;
+      lastX = e.clientX; lastY = e.clientY;
+      updateCamera();
+      if (reduceMotion) step(0.016, 0.4);
+    });
+    canvas.addEventListener('pointerup', function(){ dragging = false; });
+    canvas.addEventListener('pointerleave', function(){ dragging = false; });
+    canvas.addEventListener('wheel', function(e){
+      e.preventDefault();
+      camRadius = Math.max(2.0, Math.min(40, camRadius + e.deltaY * 0.004 * camRadius * 0.5));
+      updateCamera();
+      if (reduceMotion) step(0.016, 0.4);
+    }, { passive: false });
+
+  } catch (err){
+    var fallback = document.createElement('div');
+    fallback.className = 'engine-fallback';
+    fallback.textContent = 'The live generator couldn\'t start in this browser. Try a recent Chrome, Firefox, Safari or Edge with WebGL enabled.';
+    viewport.appendChild(fallback);
+    if (window.console) console.error('Genome generator failed to init:', err);
   }
 })();
 </script>
