@@ -74,5 +74,5 @@ Ponies aren't permanent: each has a **limited lifespan** and expires ("dies") on
 2. **M1 — Vertical slice, gray-box** *(done)*
 3. **M2 — Core race loop** *(done)*
 4. **M3 — Online multiplayer** *(done — same-network direct-IP play, verified over real ENet connections; internet play across NATs without port-forwarding remains unsolved, deliberately deferred)*
-5. **M4 — Breeding & Stable (current target):** Mendelian trait system, stable UI, pony generation from two parents, the zero-G food-throwing feeding mechanic with upkeep scaling by stable size, and the pony lifespan/expiration timer (state + UI only — real-money renewal is a separate future milestone).
+5. **M4 — Breeding & Stable (current target):** the trait/genome data structure and random-pony generation are done (`PonyGenome` resource + procedural rig builder, ported from the Look Book's generator — every race now gives each player/bot its own randomly generated pony). Still open: actually breeding two `PonyGenome`s into a foal, stable UI, the zero-G food-throwing feeding mechanic with upkeep scaling by stable size, and the pony lifespan/expiration timer (state + UI only — real-money renewal is a separate future milestone).
 6. **M5 — Content & polish:** reskin with chosen art style, expand trait library, more tracks, animation/jank polish.
