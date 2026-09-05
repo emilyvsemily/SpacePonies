@@ -248,6 +248,46 @@
     font-family:'Space Mono',monospace; font-size:.72rem; color:var(--text-faint); line-height:1.6; margin-top:.1rem;
   }
 
+  /* ---------- Genome readout + generator ---------- */
+  .genome-panel{
+    margin-top:.3rem;
+    padding-top:1rem;
+    border-top:1px dashed var(--line-soft);
+    display:flex; flex-direction:column; gap:.8rem;
+  }
+  .genome-panel-head{display:flex; align-items:center; justify-content:space-between; gap:.75rem; flex-wrap:wrap;}
+  .engine-btn.generate-btn{
+    background:var(--accent-soft); border-color:rgba(255,154,86,.5); color:var(--accent); font-weight:700;
+  }
+  .engine-btn.generate-btn:hover{background:var(--accent); color:var(--bg);}
+  .genome-traits{
+    display:grid; grid-template-columns:auto 1fr; gap:.4rem 1rem;
+    margin:0; font-size:.85rem;
+  }
+  .genome-traits dt{
+    font-family:'Space Mono',monospace; font-size:.66rem; letter-spacing:.07em; text-transform:uppercase;
+    color:var(--text-faint); padding-top:.15rem;
+  }
+  .genome-traits dd{margin:0; color:var(--text); line-height:1.55;}
+  .gene-pill{
+    display:inline-block; font-family:'Space Mono',monospace; font-size:.66rem; letter-spacing:.02em;
+    color:var(--accent-2); background:rgba(111,227,196,.12); border:1px solid rgba(111,227,196,.35);
+    padding:.15rem .5rem; border-radius:100px; margin:0 .3rem .3rem 0;
+  }
+  .gene-pill.off{color:var(--text-faint); background:transparent; border-color:var(--line);}
+  .genome-stats{display:flex; flex-direction:column; gap:.5rem;}
+  .stat-row{display:grid; grid-template-columns:4.6rem 1fr 2.1rem; align-items:center; gap:.6rem;}
+  .stat-row .stat-label{
+    font-family:'Space Mono',monospace; font-size:.66rem; letter-spacing:.05em; text-transform:uppercase;
+    color:var(--text-faint);
+  }
+  .stat-track{height:6px; border-radius:100px; background:var(--line-soft); overflow:hidden;}
+  .stat-fill{height:100%; border-radius:100px; background:linear-gradient(90deg,var(--accent-2),var(--accent));}
+  .stat-value{
+    font-family:'Space Mono',monospace; font-size:.72rem; color:var(--text-dim); text-align:right;
+    font-variant-numeric:tabular-nums;
+  }
+
   /* ---------- Footer ---------- */
   footer{
     border-top:1px solid var(--line-soft);
@@ -989,20 +1029,30 @@
         <h3 class="direction-name">Same rig, <span class="accent-a">running live</span></h3>
         <span class="badge">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v6M9 22l3-6 3 6"/><path d="M6 10l6-4 6 4-6 4z"/></svg>
-          root → body → {head, tail, leg × 3} — procedural, not skeletal
+          root → body → {head, tail, leg × N} — procedural, not skeletal
         </span>
         <p class="blurb">
           Built as a hierarchy of independent parts, exactly like the game's own approach: real transforms driven
           by sine waves and layered onto a base pose, not a single hand-authored animation clip — which is also
-          why it doesn't care that the three rocket-boot legs are mismatched lengths. It's still the cheapest
-          direction on this page to build; this is just that same cheapness proven out in motion.
+          why the same rig code can carry two legs, three, or four without new animation work. Hit
+          <strong>Generate Pony</strong> to roll a fresh genome straight out of the breeding framework and watch
+          the rig rebuild around it.
         </p>
         <div class="engine-controls">
           <button type="button" class="engine-btn active" id="btn-walk">Walk Cycle</button>
           <button type="button" class="engine-btn" id="btn-roll">Zero-G Barrel Roll</button>
           <button type="button" class="engine-btn" id="btn-turbo">Turbo Boost</button>
         </div>
-        <p class="engine-caption" id="pony-caption">Three mismatched rocket-boots, each running its own clock — the whole rig looks like it shouldn't hold together, and locomotes anyway.</p>
+        <p class="engine-caption" id="pony-caption">Rolling a fresh genome — legs, tail and mane wired into the same spring-damper system as the base direction.</p>
+
+        <div class="genome-panel">
+          <div class="genome-panel-head">
+            <span class="direction-tag">Breeding genome</span>
+            <button type="button" class="engine-btn generate-btn" id="btn-generate">Generate Pony</button>
+          </div>
+          <dl class="genome-traits" id="genome-traits"></dl>
+          <div class="genome-stats" id="genome-stats"></div>
+        </div>
       </div>
     </div>
   </section>
@@ -1032,16 +1082,115 @@
   var btnWalk = document.getElementById('btn-walk');
   var btnRoll = document.getElementById('btn-roll');
   var btnTurbo = document.getElementById('btn-turbo');
+  var btnGenerate = document.getElementById('btn-generate');
   var caption = document.getElementById('pony-caption');
   var hint = document.getElementById('pony-hint');
+  var genomeTraitsEl = document.getElementById('genome-traits');
+  var genomeStatsEl = document.getElementById('genome-stats');
 
   if (!window.THREE || !canvas) { return; }
 
-  var CAPTIONS = {
-    walk: "Three mismatched rocket-boots, each running its own clock — the whole rig looks like it shouldn't hold together, and locomotes anyway.",
-    roll: "No gravity, no up-or-down — the body spins a full 360° around its own nose-to-tail axis while legs, tail and mane flail loose, like a ragdoll tumbling in freefall.",
-    turbo: "The “fart-boost” ability gene, taken completely literally: a mysterious sputter of fire and shifting gas kicks out from somewhere near the tail, and the whole body bucks forward on every pulse like a tiny, unexplained explosion — no gravity out here, so the exhaust just drifts."
-  };
+  // ---------- Breeding / Genetics Framework (see docs/design.md) ----------
+  var LEG_TYPES = ['hooves', 'tentacles', 'propeller-feet', 'rocket-boots'];
+  var TAIL_TYPES = ['rocket', 'whip', 'propeller'];
+  var MANE_STYLES = ['space-mane', 'antenna-mane'];
+  var ABILITIES = ['dash', 'gravity-flip', 'fart-boost', 'teleport-hiccup', 'magnet-hooves'];
+
+  var LEG_TYPE_LABEL = { 'hooves': 'hooves', 'tentacles': 'tentacle legs', 'propeller-feet': 'propeller-feet', 'rocket-boots': 'mismatched rocket-boots' };
+  var TAIL_LABEL = { 'rocket': 'Rocket tail', 'whip': 'Whip tail', 'propeller': 'Propeller tail' };
+  var MANE_LABEL = { 'space-mane': 'Flowing space-mane', 'antenna-mane': 'Antenna-mane' };
+  var ABILITY_LABEL = { 'dash': 'Dash', 'gravity-flip': 'Gravity-Flip', 'fart-boost': 'Fart-Boost', 'teleport-hiccup': 'Teleport-Hiccup', 'magnet-hooves': 'Magnet-Hooves' };
+  var HUE_NAMES = ['Crimson', 'Amber', 'Gold', 'Lime', 'Emerald', 'Teal', 'Cyan', 'Azure', 'Indigo', 'Violet', 'Magenta', 'Rose'];
+
+  function rand(a, b){ return a + Math.random() * (b - a); }
+  function randInt(a, b){ return a + Math.floor(Math.random() * (b - a + 1)); }
+  function pick(arr){ return arr[(Math.random() * arr.length) | 0]; }
+  function clampStat(v){ return Math.max(5, Math.min(99, Math.round(v))); }
+  function hueName(h){ return HUE_NAMES[Math.floor(((h % 1) + 1) % 1 * HUE_NAMES.length) % HUE_NAMES.length]; }
+
+  function randomGenome(){
+    var legR = Math.random();
+    var legCount = legR < 0.14 ? 2 : (legR < 0.62 ? 3 : 4);
+    var legType = pick(LEG_TYPES);
+    var tailType = pick(TAIL_TYPES);
+    var size = rand(0.8, 1.3);
+    var coatHue = Math.random();
+    var maneHue = (coatHue + rand(0.28, 0.72)) % 1;
+    var maneStyle = pick(MANE_STYLES);
+    var coatPattern = Math.random() < 0.4 ? 'spotted' : 'solid';
+    var extraEyes = Math.random() < 0.3;
+    var wings = Math.random() < 0.35;
+    var antigravHorn = Math.random() < 0.55;
+    var gills = Math.random() < 0.3;
+    var ability = pick(ABILITIES);
+
+    var stats = {
+      speed: randInt(30, 90),
+      acceleration: randInt(30, 90),
+      handling: randInt(30, 90),
+      stamina: randInt(30, 90),
+      wackiness: randInt(15, 65)
+    };
+    if (legType === 'rocket-boots') stats.speed += 12;
+    if (legType === 'propeller-feet') stats.acceleration += 12;
+    if (legType === 'tentacles') stats.handling += 12;
+    if (legType === 'hooves') stats.stamina += 12;
+    if (legCount === 2){ stats.acceleration += 8; stats.handling -= 10; }
+    if (legCount === 4){ stats.handling += 8; stats.stamina += 4; }
+    stats.speed = stats.speed * (0.85 + size * 0.2);
+    var mutations = (extraEyes ? 1 : 0) + (wings ? 1 : 0) + (gills ? 1 : 0) + (antigravHorn ? 1 : 0);
+    stats.wackiness += mutations * 7 + (legCount === 2 ? 10 : 0) + (legType === 'tentacles' ? 6 : 0);
+    Object.keys(stats).forEach(function(k){ stats[k] = clampStat(stats[k]); });
+
+    return {
+      legCount: legCount, legType: legType, tailType: tailType, size: size,
+      coatHue: coatHue, maneHue: maneHue, maneStyle: maneStyle, coatPattern: coatPattern,
+      extraEyes: extraEyes, wings: wings, antigravHorn: antigravHorn, gills: gills,
+      ability: ability, stats: stats,
+      coatLabel: hueName(coatHue),
+      sizeLabel: size < 0.92 ? 'Compact' : (size > 1.15 ? 'Oversized' : 'Standard'),
+      patternLabel: coatPattern === 'spotted' ? 'Spotted' : 'Solid'
+    };
+  }
+
+  function captionFor(modeName, genome){
+    if (!genome) return '';
+    if (modeName === 'walk'){
+      return genome.legCount + ' ' + (genome.legCount === 1 ? 'leg' : 'legs') + ' of ' + LEG_TYPE_LABEL[genome.legType] +
+        ', each running its own clock — the whole rig looks like it shouldn\'t hold together, and locomotes anyway.';
+    }
+    if (modeName === 'roll'){
+      return 'No gravity, no up-or-down — the body spins a full 360° around its own nose-to-tail axis while legs, tail and mane flail loose, like a ragdoll tumbling in freefall.';
+    }
+    return 'The "' + ABILITY_LABEL[genome.ability] + '" ability gene, taken completely literally: a mysterious sputter of fire and shifting gas kicks out from somewhere near the tail, and the whole body bucks forward on every pulse like a tiny, unexplained explosion — no gravity out here, so the exhaust just drifts.';
+  }
+
+  function pill(label, on){ return '<span class="gene-pill' + (on ? '' : ' off') + '">' + label + '</span>'; }
+
+  function renderGenome(genome){
+    if (!genomeTraitsEl || !genomeStatsEl) return;
+    genomeTraitsEl.innerHTML =
+      '<dt>Legs</dt><dd>' + genome.legCount + ' × ' + LEG_TYPE_LABEL[genome.legType] + '</dd>' +
+      '<dt>Tail</dt><dd>' + TAIL_LABEL[genome.tailType] + '</dd>' +
+      '<dt>Size</dt><dd>' + genome.sizeLabel + '</dd>' +
+      '<dt>Coat</dt><dd>' + genome.coatLabel + ' · ' + genome.patternLabel + '</dd>' +
+      '<dt>Mane</dt><dd>' + MANE_LABEL[genome.maneStyle] + '</dd>' +
+      '<dt>Adaptations</dt><dd>' +
+        pill('Antigrav horn', genome.antigravHorn) +
+        pill('Extra eyes', genome.extraEyes) +
+        pill('Wings', genome.wings) +
+        pill('Vacuum-adapted gills', genome.gills) +
+      '</dd>' +
+      '<dt>Ability</dt><dd>' + ABILITY_LABEL[genome.ability] + '</dd>';
+
+    var STAT_ORDER = [['speed', 'Speed'], ['acceleration', 'Accel'], ['handling', 'Handling'], ['stamina', 'Stamina'], ['wackiness', 'Chaos']];
+    genomeStatsEl.innerHTML = STAT_ORDER.map(function(s){
+      var v = genome.stats[s[0]];
+      return '<div class="stat-row"><span class="stat-label">' + s[1] + '</span>' +
+        '<span class="stat-track"><span class="stat-fill" style="width:' + v + '%"></span></span>' +
+        '<span class="stat-value">' + v + '</span></div>';
+    }).join('');
+  }
 
   try {
 
@@ -1110,121 +1259,8 @@
       var o = Object.assign({ color: hex, flatShading: true, roughness: 0.65, metalness: 0.08 }, extra || {});
       return new THREE.MeshStandardMaterial(o);
     }
-    var M = {
-      bodyMain: mat(0x5b4b9e), bodyLight: mat(0x8879c9), bodyDark: mat(0x3f3372),
-      headMain: mat(0x7669c0), headLight: mat(0x9c8fe0), headDark: mat(0x453873),
-      maneLight: mat(0xa89be0), maneDark: mat(0x4a3d80),
-      legLight: mat(0x4a3d80), legDark: mat(0x42356f),
-      flameOrange: mat(0xff9a56, { emissive: 0xff9a56, emissiveIntensity: 0.5, roughness: 0.4 }),
-      flameYellow: mat(0xffd166, { emissive: 0xffd166, emissiveIntensity: 0.6, roughness: 0.4 }),
-      hornCrystal: mat(0xcdeeff, { emissive: 0x6fe3c4, emissiveIntensity: 0.5, roughness: 0.25, metalness: 0.1 }),
-      hornTip: mat(0xeafcff, { emissive: 0xeafcff, emissiveIntensity: 0.8, roughness: 0.2 }),
-      eyeWhite: mat(0xf3eefb, { roughness: 0.5 }),
-      eyePupil: mat(0x241c40, { roughness: 0.6 })
-    };
+    function hsl(h, s, l){ return new THREE.Color().setHSL(((h % 1) + 1) % 1, s, l).getHex(); }
 
-    // ---------- rig: rig -> {torso, headGroup, tail, leg x3} ----------
-    var rig = new THREE.Group();
-    rig.position.y = 1.32;
-    scene.add(rig);
-
-    // torso (body)
-    var torso = new THREE.Mesh(new THREE.IcosahedronGeometry(0.82, 0), M.bodyMain);
-    torso.scale.set(1.28, 0.82, 1.05);
-    rig.add(torso);
-    var torsoLight = new THREE.Mesh(new THREE.IcosahedronGeometry(0.42, 0), M.bodyLight);
-    torsoLight.position.set(0.42, 0.32, 0.42);
-    torsoLight.scale.set(1.1, 0.7, 0.7);
-    rig.add(torsoLight);
-    var torsoDark = new THREE.Mesh(new THREE.IcosahedronGeometry(0.46, 0), M.bodyDark);
-    torsoDark.position.set(-0.3, -0.28, -0.32);
-    torsoDark.scale.set(1, 0.7, 0.75);
-    rig.add(torsoDark);
-
-    // head group
-    var headGroup = new THREE.Group();
-    headGroup.position.set(0, 0.58, 0.92);
-    rig.add(headGroup);
-
-    var headMesh = new THREE.Mesh(new THREE.IcosahedronGeometry(0.4, 0), M.headMain);
-    headGroup.add(headMesh);
-    var headLight = new THREE.Mesh(new THREE.IcosahedronGeometry(0.2, 0), M.headLight);
-    headLight.position.set(0.18, 0.14, 0.2);
-    headGroup.add(headLight);
-    var headDark = new THREE.Mesh(new THREE.IcosahedronGeometry(0.2, 0), M.headDark);
-    headDark.position.set(-0.15, -0.1, -0.16);
-    headGroup.add(headDark);
-
-    // ears
-    [[-0.16, 0.34, 0.06, M.headLight], [0.02, 0.36, 0.08, M.headMain]].forEach(function(e){
-      var ear = new THREE.Mesh(new THREE.ConeGeometry(0.09, 0.26, 4), e[3]);
-      ear.position.set(e[0], e[1], e[2]);
-      ear.rotation.z = e[0] < 0 ? 0.35 : -0.2;
-      headGroup.add(ear);
-    });
-
-    // antigrav horn
-    var hornGroup = new THREE.Group();
-    hornGroup.position.set(0.02, 0.42, 0.14);
-    hornGroup.rotation.x = -0.25;
-    headGroup.add(hornGroup);
-    var horn = new THREE.Mesh(new THREE.ConeGeometry(0.05, 0.5, 5), M.hornCrystal);
-    horn.position.y = 0.25;
-    hornGroup.add(horn);
-    var hornTip = new THREE.Mesh(new THREE.ConeGeometry(0.028, 0.2, 5), M.hornTip);
-    hornTip.position.y = 0.42;
-    hornGroup.add(hornTip);
-    var hornGlow = new THREE.Mesh(new THREE.IcosahedronGeometry(0.075, 0), new THREE.MeshBasicMaterial({ color: 0x6fe3c4, transparent: true, opacity: 0.55 }));
-    hornGlow.position.y = 0.52;
-    hornGroup.add(hornGlow);
-    var hornLight = new THREE.PointLight(0x6fe3c4, 0.8, 2.2);
-    hornLight.position.y = 0.52;
-    hornGroup.add(hornLight);
-
-    // eyes
-    [[-0.16, 0.03, 0.32], [0.14, 0.06, 0.33]].forEach(function(p){
-      var e = new THREE.Group();
-      e.position.set(p[0], p[1], p[2]);
-      var white = new THREE.Mesh(new THREE.IcosahedronGeometry(0.068, 0), M.eyeWhite);
-      e.add(white);
-      var pupil = new THREE.Mesh(new THREE.IcosahedronGeometry(0.034, 0), M.eyePupil);
-      pupil.position.z = 0.05;
-      e.add(pupil);
-      headGroup.add(e);
-    });
-
-    // mane (spikes riding the neck, wags with the head)
-    var maneSpecs = [
-      [-0.05, 0.32, -0.12, 0.14, 0.34, M.maneLight],
-      [-0.16, 0.28, -0.28, 0.13, 0.3, M.maneDark],
-      [-0.28, 0.22, -0.42, 0.12, 0.26, M.maneLight],
-      [-0.4, 0.14, -0.55, 0.1, 0.22, M.maneDark]
-    ];
-    maneSpecs.forEach(function(s){
-      var spike = new THREE.Mesh(new THREE.ConeGeometry(s[3], s[4], 4), s[5]);
-      spike.position.set(s[0], s[1], s[2]);
-      spike.rotation.x = -0.3;
-      spike.rotation.z = 0.25;
-      headGroup.add(spike);
-    });
-
-    // tail
-    var tail = new THREE.Group();
-    tail.position.set(-0.05, 0.15, -0.95);
-    rig.add(tail);
-    [[0, 0, 0, 0.16, M.bodyLight], [-0.14, -0.06, -0.16, 0.13, M.legLight], [0.1, -0.1, -0.22, 0.1, M.bodyDark]].forEach(function(s){
-      var t = new THREE.Mesh(new THREE.ConeGeometry(s[3], s[3] * 2.2, 4), s[4]);
-      t.position.set(s[0], s[1], s[2]);
-      t.rotation.x = Math.PI * 0.42;
-      tail.add(t);
-    });
-
-    // legs: mismatched rocket-boots — lengthened, two-bone (hip -> upper -> knee -> lower/boot)
-    var legSpecs = [
-      { x: -0.5, z: 0.3, len: 1.42, mat: M.legLight, freq: 5.1, amp: 0.56, phase: 0.0 },
-      { x: 0.12, z: -0.42, len: 1.95, mat: M.legDark, freq: 4.05, amp: 0.47, phase: 1.8 },
-      { x: 0.58, z: 0.26, len: 1.22, mat: M.legLight, freq: 6.1, amp: 0.68, phase: 3.3 }
-    ];
     // classic cheap-ragdoll spring-damper: integrates `cur`/`vel` toward `target` each frame
     // instead of snapping — lower stiffness/damping = looser, more overshoot-y joint.
     function spring(cur, vel, target, stiffness, damping, dt){
@@ -1233,15 +1269,64 @@
       cur += vel * dt;
       return [cur, vel];
     }
-    var legs = legSpecs.map(function(spec){
+
+    function disposeObject3D(obj){
+      obj.traverse(function(o){
+        if (o.geometry) o.geometry.dispose();
+        if (o.material){
+          if (Array.isArray(o.material)) o.material.forEach(function(m){ m.dispose(); });
+          else o.material.dispose();
+        }
+      });
+    }
+
+    // two-legged/three-legged/four-legged stances — 4 legs use a real diagonal trot pairing
+    // (front-left+back-right share a phase, front-right+back-left share the other).
+    var LEG_LAYOUTS = {
+      2: [{ x: 0, z: 0.34, phase: 0 }, { x: 0, z: -0.34, phase: Math.PI }],
+      3: [{ x: -0.5, z: 0.3, phase: 0 }, { x: 0.12, z: -0.42, phase: 1.8 }, { x: 0.58, z: 0.26, phase: 3.3 }],
+      4: [{ x: -0.5, z: 0.34, phase: 0 }, { x: 0.5, z: 0.34, phase: Math.PI }, { x: -0.5, z: -0.34, phase: Math.PI }, { x: 0.5, z: -0.34, phase: 0 }]
+    };
+
+    function makeLegMaterials(legType, coatHue){
+      if (legType === 'propeller-feet'){
+        return {
+          light: mat(hsl(coatHue, 0.06, 0.75), { metalness: 0.55, roughness: 0.3 }),
+          dark: mat(hsl(coatHue, 0.08, 0.42), { metalness: 0.55, roughness: 0.3 }),
+          accent: mat(hsl(coatHue, 0.1, 0.85), { metalness: 0.6, roughness: 0.25, emissive: hsl(coatHue, 0.3, 0.4), emissiveIntensity: 0.15 })
+        };
+      }
+      if (legType === 'tentacles'){
+        var tl = mat(hsl(coatHue + 0.06, 0.55, 0.5), { roughness: 0.3, metalness: 0.05 });
+        return { light: tl, dark: mat(hsl(coatHue + 0.06, 0.5, 0.3), { roughness: 0.3, metalness: 0.05 }), accent: tl };
+      }
+      if (legType === 'hooves'){
+        return {
+          light: mat(hsl(coatHue, 0.32, 0.36)),
+          dark: mat(hsl(coatHue, 0.34, 0.24)),
+          accent: mat(hsl(coatHue, 0.2, 0.12))
+        };
+      }
+      // rocket-boots
+      return {
+        light: mat(hsl(coatHue, 0.3, 0.34)),
+        dark: mat(hsl(coatHue, 0.32, 0.24)),
+        accent: mat(0xff9a56, { emissive: 0xff9a56, emissiveIntensity: 0.5, roughness: 0.4 })
+      };
+    }
+
+    function buildLeg(spec, legType, mats, flameMats){
       var upperLen = spec.len * 0.56;
       var lowerLen = spec.len * 0.44;
+      var segs = legType === 'tentacles' ? 6 : 5;
 
       var hip = new THREE.Group();
       hip.position.set(spec.x, -0.18, spec.z);
       rig.add(hip);
 
-      var upper = new THREE.Mesh(new THREE.CylinderGeometry(spec.len * 0.1, spec.len * 0.135, upperLen, 5), spec.mat);
+      var upperTop = legType === 'tentacles' ? spec.len * 0.06 : spec.len * 0.1;
+      var upperBot = legType === 'tentacles' ? spec.len * 0.09 : spec.len * 0.135;
+      var upper = new THREE.Mesh(new THREE.CylinderGeometry(upperTop, upperBot, upperLen, segs), mats.light);
       upper.position.y = -upperLen / 2;
       hip.add(upper);
 
@@ -1250,33 +1335,293 @@
       knee.position.y = -upperLen;
       hip.add(knee);
 
-      var kneeCap = new THREE.Mesh(new THREE.IcosahedronGeometry(spec.len * 0.085, 0), spec.mat);
+      var kneeCap = new THREE.Mesh(new THREE.IcosahedronGeometry(spec.len * 0.085, 0), mats.light);
       knee.add(kneeCap);
 
-      var lower = new THREE.Mesh(new THREE.CylinderGeometry(spec.len * 0.08, spec.len * 0.11, lowerLen, 5), spec.mat);
-      lower.position.y = -lowerLen / 2;
-      knee.add(lower);
-
-      var flameGroup = new THREE.Group();
-      flameGroup.position.y = -lowerLen;
-      knee.add(flameGroup);
-      var flameOuter = new THREE.Mesh(new THREE.ConeGeometry(0.13, 0.34, 5), M.flameOrange);
-      flameOuter.rotation.x = Math.PI;
-      flameOuter.position.y = -0.15;
-      flameGroup.add(flameOuter);
-      var flameInner = new THREE.Mesh(new THREE.ConeGeometry(0.075, 0.2, 5), M.flameYellow);
-      flameInner.rotation.x = Math.PI;
-      flameInner.position.y = -0.08;
-      flameGroup.add(flameInner);
-
-      return {
-        group: hip, knee: knee, flameOuter: flameOuter, flameInner: flameInner,
+      var leg = {
+        group: hip, knee: knee, type: legType,
         freq: spec.freq, amp: spec.amp, phase: spec.phase,
         // per-joint spring-damper state (current angle + angular velocity)
         hipX: 0, hipVX: 0, hipY: 0, hipVY: 0, hipZ: 0, hipVZ: 0,
-        kneeX: 0, kneeVX: 0, kneeZ: 0, kneeVZ: 0
+        kneeX: 0, kneeVX: 0, kneeZ: 0, kneeVZ: 0,
+        flameOuter: null, flameInner: null, prop: null
       };
-    });
+
+      if (legType === 'propeller-feet'){
+        var hub = new THREE.Mesh(new THREE.IcosahedronGeometry(spec.len * 0.11, 0), mats.accent);
+        hub.position.y = -lowerLen * 0.3;
+        knee.add(hub);
+        var propGroup = new THREE.Group();
+        propGroup.position.y = -lowerLen * 0.3;
+        knee.add(propGroup);
+        [0, Math.PI / 2].forEach(function(rot){
+          var blade = new THREE.Mesh(new THREE.BoxGeometry(spec.len * 0.42, spec.len * 0.02, spec.len * 0.09), mats.dark);
+          blade.rotation.y = rot;
+          propGroup.add(blade);
+        });
+        leg.prop = propGroup;
+      } else {
+        var lower = new THREE.Mesh(new THREE.CylinderGeometry(spec.len * 0.08, spec.len * 0.11, lowerLen, segs), mats.dark);
+        lower.position.y = -lowerLen / 2;
+        knee.add(lower);
+
+        if (legType === 'rocket-boots'){
+          var flameGroup = new THREE.Group();
+          flameGroup.position.y = -lowerLen;
+          knee.add(flameGroup);
+          var flameOuter = new THREE.Mesh(new THREE.ConeGeometry(0.13, 0.34, 5), flameMats.orange);
+          flameOuter.rotation.x = Math.PI;
+          flameOuter.position.y = -0.15;
+          flameGroup.add(flameOuter);
+          var flameInner = new THREE.Mesh(new THREE.ConeGeometry(0.075, 0.2, 5), flameMats.yellow);
+          flameInner.rotation.x = Math.PI;
+          flameInner.position.y = -0.08;
+          flameGroup.add(flameInner);
+          leg.flameOuter = flameOuter;
+          leg.flameInner = flameInner;
+        } else if (legType === 'hooves'){
+          var hoof = new THREE.Mesh(new THREE.BoxGeometry(spec.len * 0.16, spec.len * 0.09, spec.len * 0.2), mats.accent);
+          hoof.position.y = -lowerLen - spec.len * 0.03;
+          knee.add(hoof);
+        } else {
+          var tip = new THREE.Mesh(new THREE.IcosahedronGeometry(spec.len * 0.07, 0), mats.light);
+          tip.position.y = -lowerLen;
+          knee.add(tip);
+        }
+      }
+      return leg;
+    }
+
+    // ---------- rig: rig -> {torso, headGroup, tail, leg x N} — rebuilt fresh per genome ----------
+    var rig = null, headGroup = null, hornGroup = null, hornGlow = null, trailAnchor = null;
+    var tail = null, tailTip = null, tailProp = null, legs = [], wings = null;
+    var exhaustEmitter = null, exhaustAim = null;
+
+    function buildRig(genome){
+      if (rig){ scene.remove(rig); disposeObject3D(rig); }
+
+      var coatHue = genome.coatHue, maneHue = genome.maneHue;
+      var bodyMain = mat(hsl(coatHue, 0.42, 0.42));
+      var bodyLight = mat(hsl(coatHue, 0.46, 0.62));
+      var bodyDark = mat(hsl(coatHue, 0.4, 0.24));
+      var headMain = mat(hsl(coatHue, 0.38, 0.5));
+      var headLight = mat(hsl(coatHue, 0.34, 0.66));
+      var headDark = mat(hsl(coatHue, 0.42, 0.32));
+      var maneLight = mat(hsl(maneHue, 0.55, 0.72));
+      var maneDark = mat(hsl(maneHue, 0.5, 0.42));
+      var eyeWhite = mat(0xf3eefb, { roughness: 0.5 });
+      var eyePupil = mat(0x241c40, { roughness: 0.6 });
+      var hornHue = coatHue + 0.45 + rand(-0.1, 0.1);
+      var hornCrystal = mat(hsl(hornHue, 0.5, 0.75), { emissive: hsl(hornHue, 0.6, 0.55), emissiveIntensity: 0.5, roughness: 0.25, metalness: 0.1 });
+      var hornTipMat = mat(hsl(hornHue, 0.2, 0.94), { emissive: hsl(hornHue, 0.3, 0.9), emissiveIntensity: 0.8, roughness: 0.2 });
+      var gillMat = mat(hsl(0.5, 0.55, 0.55), { emissive: 0x6fe3c4, emissiveIntensity: 0.4, roughness: 0.4 });
+      var wingMat = mat(hsl(maneHue, 0.5, 0.6), { roughness: 0.5, transparent: true, opacity: 0.88, side: THREE.DoubleSide });
+      var spotMat = mat(hsl(maneHue, 0.55, 0.6));
+      var flameMats = {
+        orange: mat(0xff9a56, { emissive: 0xff9a56, emissiveIntensity: 0.5, roughness: 0.4 }),
+        yellow: mat(0xffd166, { emissive: 0xffd166, emissiveIntensity: 0.6, roughness: 0.4 })
+      };
+
+      rig = new THREE.Group();
+      rig.position.y = 1.32;
+      scene.add(rig);
+
+      // torso (body)
+      var torso = new THREE.Mesh(new THREE.IcosahedronGeometry(0.82, 0), bodyMain);
+      torso.scale.set(1.28, 0.82, 1.05);
+      rig.add(torso);
+      var torsoLight = new THREE.Mesh(new THREE.IcosahedronGeometry(0.42, 0), bodyLight);
+      torsoLight.position.set(0.42, 0.32, 0.42);
+      torsoLight.scale.set(1.1, 0.7, 0.7);
+      rig.add(torsoLight);
+      var torsoDark = new THREE.Mesh(new THREE.IcosahedronGeometry(0.46, 0), bodyDark);
+      torsoDark.position.set(-0.3, -0.28, -0.32);
+      torsoDark.scale.set(1, 0.7, 0.75);
+      rig.add(torsoDark);
+
+      if (genome.coatPattern === 'spotted'){
+        [[0.5, 0.05, 0.1], [-0.15, 0.35, 0.5], [0.1, -0.2, -0.55], [-0.45, 0, -0.05]].forEach(function(p){
+          var spot = new THREE.Mesh(new THREE.IcosahedronGeometry(0.13 + Math.random() * 0.06, 0), spotMat);
+          spot.position.set(p[0], p[1], p[2]);
+          rig.add(spot);
+        });
+      }
+
+      // head group
+      headGroup = new THREE.Group();
+      headGroup.position.set(0, 0.58, 0.92);
+      rig.add(headGroup);
+
+      headGroup.add(new THREE.Mesh(new THREE.IcosahedronGeometry(0.4, 0), headMain));
+      var headLightMesh = new THREE.Mesh(new THREE.IcosahedronGeometry(0.2, 0), headLight);
+      headLightMesh.position.set(0.18, 0.14, 0.2);
+      headGroup.add(headLightMesh);
+      var headDarkMesh = new THREE.Mesh(new THREE.IcosahedronGeometry(0.2, 0), headDark);
+      headDarkMesh.position.set(-0.15, -0.1, -0.16);
+      headGroup.add(headDarkMesh);
+
+      // ears
+      [[-0.16, 0.34, 0.06, headLight], [0.02, 0.36, 0.08, headMain]].forEach(function(e){
+        var ear = new THREE.Mesh(new THREE.ConeGeometry(0.09, 0.26, 4), e[3]);
+        ear.position.set(e[0], e[1], e[2]);
+        ear.rotation.z = e[0] < 0 ? 0.35 : -0.2;
+        headGroup.add(ear);
+      });
+
+      // antigrav horn (space-adaptation gene — present/absent)
+      if (genome.antigravHorn){
+        hornGroup = new THREE.Group();
+        hornGroup.position.set(0.02, 0.42, 0.14);
+        hornGroup.rotation.x = -0.25;
+        headGroup.add(hornGroup);
+        var horn = new THREE.Mesh(new THREE.ConeGeometry(0.05, 0.5, 5), hornCrystal);
+        horn.position.y = 0.25;
+        hornGroup.add(horn);
+        var hornTip = new THREE.Mesh(new THREE.ConeGeometry(0.028, 0.2, 5), hornTipMat);
+        hornTip.position.y = 0.42;
+        hornGroup.add(hornTip);
+        hornGlow = new THREE.Mesh(new THREE.IcosahedronGeometry(0.075, 0), new THREE.MeshBasicMaterial({ color: hsl(hornHue, 0.5, 0.7), transparent: true, opacity: 0.55 }));
+        hornGlow.position.y = 0.52;
+        hornGroup.add(hornGlow);
+        var hornLight = new THREE.PointLight(hsl(hornHue, 0.5, 0.6), 0.8, 2.2);
+        hornLight.position.y = 0.52;
+        hornGroup.add(hornLight);
+        trailAnchor = hornGlow;
+      } else {
+        hornGroup = null;
+        hornGlow = null;
+        trailAnchor = new THREE.Object3D();
+        trailAnchor.position.set(0, 0.4, 0.1);
+        headGroup.add(trailAnchor);
+      }
+
+      // eyes — a mutation gene adds a second pair up on the forehead
+      var eyeSpecs = [[-0.16, 0.03, 0.32, 0.068, 0.034], [0.14, 0.06, 0.33, 0.068, 0.034]];
+      if (genome.extraEyes){
+        eyeSpecs.push([-0.05, 0.22, 0.36, 0.045, 0.024], [0.06, 0.23, 0.36, 0.045, 0.024]);
+      }
+      eyeSpecs.forEach(function(p){
+        var e = new THREE.Group();
+        e.position.set(p[0], p[1], p[2]);
+        var white = new THREE.Mesh(new THREE.IcosahedronGeometry(p[3], 0), eyeWhite);
+        e.add(white);
+        var pupil = new THREE.Mesh(new THREE.IcosahedronGeometry(p[4], 0), eyePupil);
+        pupil.position.z = p[3] * 0.7;
+        e.add(pupil);
+        headGroup.add(e);
+      });
+
+      // mane: flowing space-mane spikes, or a pair of antenna stalks with a glowing bead tip
+      if (genome.maneStyle === 'space-mane'){
+        [
+          [-0.05, 0.32, -0.12, 0.14, 0.34, maneLight], [-0.16, 0.28, -0.28, 0.13, 0.3, maneDark],
+          [-0.28, 0.22, -0.42, 0.12, 0.26, maneLight], [-0.4, 0.14, -0.55, 0.1, 0.22, maneDark]
+        ].forEach(function(s){
+          var spike = new THREE.Mesh(new THREE.ConeGeometry(s[3], s[4], 4), s[5]);
+          spike.position.set(s[0], s[1], s[2]);
+          spike.rotation.x = -0.3;
+          spike.rotation.z = 0.25;
+          headGroup.add(spike);
+        });
+      } else {
+        [[-0.1, 0.34, -0.1], [0.12, 0.36, -0.16]].forEach(function(p, i){
+          var stalk = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.028, 0.36, 5), i % 2 ? maneDark : maneLight);
+          stalk.position.set(p[0], p[1] + 0.18, p[2]);
+          stalk.rotation.x = -0.35;
+          headGroup.add(stalk);
+          var bead = new THREE.Mesh(new THREE.IcosahedronGeometry(0.05, 0), hornTipMat);
+          bead.position.set(p[0], p[1] + 0.38, p[2] - 0.12);
+          headGroup.add(bead);
+        });
+      }
+
+      // vacuum-adapted gills (decorative slats)
+      if (genome.gills){
+        [-1, 1].forEach(function(side){
+          for (var i = 0; i < 3; i++){
+            var slat = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.09, 0.02), gillMat);
+            slat.position.set(side * 0.36, 0.08 - i * 0.09, 0.55);
+            slat.rotation.z = side * 0.3;
+            headGroup.add(slat);
+          }
+        });
+      }
+
+      // wings (space-adaptation gene)
+      wings = null;
+      if (genome.wings){
+        wings = [];
+        [-1, 1].forEach(function(side){
+          var wing = new THREE.Mesh(new THREE.ConeGeometry(0.62, 0.14, 3), wingMat);
+          wing.position.set(side * 0.75, 0.35, -0.15);
+          wing.rotation.z = side * (Math.PI / 2) * 0.62;
+          wing.rotation.y = side * 0.3;
+          wing.rotation.x = -0.15;
+          rig.add(wing);
+          wings.push(wing);
+        });
+      }
+
+      // tail (locomotion gene: rocket / whip / propeller)
+      tail = new THREE.Group();
+      tail.position.set(-0.05, 0.15, -0.95);
+      rig.add(tail);
+      [[0, 0, 0, 0.16, bodyLight], [-0.14, -0.06, -0.16, 0.13, bodyDark], [0.1, -0.1, -0.22, 0.1, bodyDark]].forEach(function(s){
+        var t = new THREE.Mesh(new THREE.ConeGeometry(s[3], s[3] * 2.2, 4), s[4]);
+        t.position.set(s[0], s[1], s[2]);
+        t.rotation.x = Math.PI * 0.42;
+        tail.add(t);
+      });
+      tailTip = null;
+      tailProp = null;
+      if (genome.tailType === 'rocket'){
+        var tipFlameGroup = new THREE.Group();
+        tipFlameGroup.position.set(0.1, -0.32, -0.5);
+        tail.add(tipFlameGroup);
+        var tf1 = new THREE.Mesh(new THREE.ConeGeometry(0.09, 0.24, 5), flameMats.orange);
+        tf1.rotation.x = Math.PI * 0.42;
+        tipFlameGroup.add(tf1);
+        var tf2 = new THREE.Mesh(new THREE.ConeGeometry(0.05, 0.14, 5), flameMats.yellow);
+        tf2.rotation.x = Math.PI * 0.42;
+        tf2.position.y = 0.04;
+        tipFlameGroup.add(tf2);
+        tailTip = { outer: tf1, inner: tf2 };
+      } else if (genome.tailType === 'propeller'){
+        tailProp = new THREE.Group();
+        tailProp.position.set(0.14, -0.16, -0.62);
+        tail.add(tailProp);
+        [0, Math.PI / 2].forEach(function(rot){
+          var blade = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.018, 0.07), bodyDark);
+          blade.rotation.z = rot;
+          tailProp.add(blade);
+        });
+      }
+      // 'whip' tail uses the base tail cones only — its extra whip-iness comes from animation amplitude.
+
+      // legs (locomotion gene: count + type)
+      var layout = LEG_LAYOUTS[genome.legCount];
+      var legMats = makeLegMaterials(genome.legType, coatHue);
+      legs = layout.map(function(spot){
+        var len = rand(1.1, 1.9) * (genome.legType === 'propeller-feet' ? 0.72 : 1);
+        var spec = { x: spot.x, z: spot.z, len: len, freq: rand(4.0, 6.2), amp: rand(0.45, 0.7), phase: spot.phase + rand(-0.15, 0.15) };
+        return buildLeg(spec, genome.legType, legMats, flameMats);
+      });
+
+      // exhaust emitter/aim — children of rig so they follow its transform and scale
+      exhaustEmitter = new THREE.Object3D();
+      exhaustEmitter.position.set(0, -0.06, -1.05);
+      rig.add(exhaustEmitter);
+      exhaustAim = new THREE.Object3D();
+      exhaustAim.position.set(0, -0.06, -1.9);
+      rig.add(exhaustAim);
+
+      rig.scale.setScalar(genome.size);
+
+      // reframe the camera a bit so bigger/smaller/leggier ponies still sit nicely in view
+      camTarget.set(0, 1.0 + 0.25 * genome.size, 0);
+      camRadius = Math.max(3.6, Math.min(8.5, 4.6 + (genome.size - 1) * 2.4 + (genome.legCount - 3) * 0.3));
+      updateCamera();
+    }
 
     // ---------- horn trail (barrel-roll only) ----------
     var TRAIL_N = 22;
@@ -1294,7 +1639,7 @@
     var hornWorld = new THREE.Vector3();
 
     function updateTrail(){
-      hornGlow.getWorldPosition(hornWorld);
+      trailAnchor.getWorldPosition(hornWorld);
       if (!trailPrimed){
         for (var i = 0; i < TRAIL_N; i++){
           trailPos[i*3] = hornWorld.x; trailPos[i*3+1] = hornWorld.y; trailPos[i*3+2] = hornWorld.z;
@@ -1341,13 +1686,7 @@
     }
     var exCursor = 0;
 
-    // emitter sits at the rump/tail-base — a little below and behind the tail attachment point
-    var exhaustEmitter = new THREE.Object3D();
-    exhaustEmitter.position.set(0, -0.06, -1.05);
-    rig.add(exhaustEmitter);
-    var exhaustAim = new THREE.Object3D();
-    exhaustAim.position.set(0, -0.06, -1.9);
-    rig.add(exhaustAim);
+    // exhaustEmitter/exhaustAim are (re)created per-genome inside buildRig, as children of the current rig
     var exOrigin = new THREE.Vector3();
     var exAimPos = new THREE.Vector3();
     var exDir = new THREE.Vector3();
@@ -1527,7 +1866,7 @@
       var hhy = spring(headY, headVY, headTargetY, 26, 3.0, dt); headY = hhy[0]; headVY = hhy[1];
       var hhz = spring(headZ, headVZ, headTargetZ, 36, 3.4, dt); headZ = hhz[0]; headVZ = hhz[1];
       headGroup.rotation.set(headX, headY, headZ);
-      hornGroup.rotation.z = Math.sin(t * 7.8) * 0.18;
+      if (hornGroup) hornGroup.rotation.z = Math.sin(t * 7.8) * 0.18;
 
       legs.forEach(function(leg, i){
         // hip: base walk-cycle driver, sprung rather than snapped (tight-ish spring so it still reads as a gait)
@@ -1548,13 +1887,26 @@
         leg.knee.rotation.x = leg.kneeX;
         leg.knee.rotation.z = leg.kneeZ;
 
-        var flick = 0.8 + Math.max(0, Math.sin(t * leg.freq + leg.phase)) * 0.55 + Math.sin(t * 24 + i * 5) * 0.12;
-        leg.flameOuter.scale.y = Math.max(0.35, flick);
-        leg.flameInner.scale.y = Math.max(0.3, flick * 0.85 + 0.15);
+        if (leg.flameOuter){
+          var flick = 0.8 + Math.max(0, Math.sin(t * leg.freq + leg.phase)) * 0.55 + Math.sin(t * 24 + i * 5) * 0.12;
+          leg.flameOuter.scale.y = Math.max(0.35, flick);
+          leg.flameInner.scale.y = Math.max(0.3, flick * 0.85 + 0.15);
+        }
+        if (leg.prop) leg.prop.rotation.y += dt * (16 + leg.freq * 2.4);
       });
 
       tail.rotation.x = Math.sin(t * 3.9) * 0.25;
       tail.rotation.z = Math.sin(t * 2.0 + 1) * 0.16;
+      if (tailTip){
+        var tflick = 0.8 + Math.max(0, Math.sin(t * 5.5)) * 0.5;
+        tailTip.outer.scale.y = Math.max(0.4, tflick);
+        tailTip.inner.scale.y = Math.max(0.35, tflick * 0.85 + 0.15);
+      }
+      if (tailProp) tailProp.rotation.z += dt * 12;
+      if (wings){
+        var wflap = Math.sin(t * 3.5) * 0.12;
+        wings.forEach(function(w, wi){ w.rotation.x = -0.15 + wflap * (wi ? 1 : -1); });
+      }
     }
 
     var rollSpeed = (Math.PI * 2) / 1.3;
@@ -1595,13 +1947,28 @@
         leg.knee.rotation.x = leg.kneeX;
         leg.knee.rotation.z = leg.kneeZ;
 
-        leg.flameOuter.scale.y = Math.max(0.4, 0.9 + Math.sin(t * 13 + i) * 0.25);
-        leg.flameInner.scale.y = Math.max(0.4, 0.9 + Math.sin(t * 17 + i) * 0.25);
+        if (leg.flameOuter){
+          leg.flameOuter.scale.y = Math.max(0.4, 0.9 + Math.sin(t * 13 + i) * 0.25);
+          leg.flameInner.scale.y = Math.max(0.4, 0.9 + Math.sin(t * 17 + i) * 0.25);
+        }
+        if (leg.prop) leg.prop.rotation.y += dt * (10 + leg.freq * 3);
       });
 
       tail.rotation.x = Math.sin(t * 10.5 + 2) * 0.6;
       tail.rotation.z = Math.cos(t * 8.3) * 0.55;
       tail.rotation.y = Math.sin(t * 6.8) * 0.4;
+      if (tailTip){
+        var tflick2 = 0.85 + Math.sin(t * 15) * 0.3;
+        tailTip.outer.scale.y = Math.max(0.4, tflick2);
+        tailTip.inner.scale.y = Math.max(0.4, tflick2 * 0.9);
+      }
+      if (tailProp) tailProp.rotation.z += dt * 20;
+      if (wings){
+        wings.forEach(function(w, wi){
+          w.rotation.x = Math.sin(t * 9 + wi) * 0.5;
+          w.rotation.z = (wi ? 1 : -1) * (Math.PI / 2) * 0.62 + Math.cos(t * 7) * 0.3;
+        });
+      }
 
       updateTrail();
     }
@@ -1653,7 +2020,7 @@
       var hhy = spring(headY, headVY, headTargetY, 24, 2.8, dt); headY = hhy[0]; headVY = hhy[1];
       var hhz = spring(headZ, headVZ, headTargetZ, 34, 3.2, dt); headZ = hhz[0]; headVZ = hhz[1];
       headGroup.rotation.set(headX, headY, headZ);
-      hornGroup.rotation.z = Math.sin(t * 5.4) * 0.12;
+      if (hornGroup) hornGroup.rotation.z = Math.sin(t * 5.4) * 0.12;
 
       legs.forEach(function(leg, i){
         var hipTargetX = -0.12 + Math.sin(t * 1.7 + leg.phase) * 0.1;
@@ -1670,13 +2037,25 @@
         leg.knee.rotation.x = leg.kneeX;
         leg.knee.rotation.z = leg.kneeZ;
 
-        var flick = 0.75 + Math.sin(t * 20 + i * 4) * 0.15;
-        leg.flameOuter.scale.y = Math.max(0.35, flick);
-        leg.flameInner.scale.y = Math.max(0.3, flick * 0.85 + 0.15);
+        if (leg.flameOuter){
+          var flick = 0.75 + Math.sin(t * 20 + i * 4) * 0.15;
+          leg.flameOuter.scale.y = Math.max(0.35, flick);
+          leg.flameInner.scale.y = Math.max(0.3, flick * 0.85 + 0.15);
+        }
+        if (leg.prop) leg.prop.rotation.y += dt * (26 + leg.freq * 3);
       });
 
       tail.rotation.x = Math.sin(t * 4.4) * 0.2 - turboRecoilPitch * 0.06;
       tail.rotation.z = Math.sin(t * 3.1 + 1) * 0.22 + turboRecoilRoll * 0.1;
+      if (tailTip){
+        var tflick3 = 0.85 + Math.sin(t * 30) * 0.4;
+        tailTip.outer.scale.y = Math.max(0.4, tflick3);
+        tailTip.inner.scale.y = Math.max(0.4, tflick3 * 0.9);
+      }
+      if (tailProp) tailProp.rotation.z += dt * (16 + turboRecoilZ);
+      if (wings){
+        wings.forEach(function(w, wi){ w.rotation.x = -0.15 + Math.sin(t * 5 + wi) * 0.15 - turboRecoilPitch * 0.08; });
+      }
 
       updateExhaust(dt);
     }
@@ -1691,7 +2070,9 @@
         leg.kneeX = leg.kneeVX = leg.kneeZ = leg.kneeVZ = 0;
         leg.group.rotation.set(0, 0, 0);
         leg.knee.rotation.set(0, 0, 0);
+        if (leg.prop) leg.prop.rotation.set(0, 0, 0);
       });
+      if (tailProp) tailProp.rotation.set(0, 0, 0);
     }
 
     function resetTurbo(){
@@ -1710,8 +2091,20 @@
       else { animateTurbo(t, dt); trail.visible = false; exhaust.visible = true; }
       renderer.render(scene, camera);
     }
-    resetPose();
-    resetExhaust();
+    // ---------- generation: roll a genome, rebuild the rig, refresh the readout ----------
+    var currentGenome = null;
+    function generatePony(){
+      currentGenome = randomGenome();
+      buildRig(currentGenome);
+      renderGenome(currentGenome);
+      caption.textContent = captionFor(mode, currentGenome);
+      resetHead();
+      resetPose();
+      if (mode === 'turbo') resetTurbo(); else resetExhaust();
+    }
+    if (btnGenerate) btnGenerate.addEventListener('click', generatePony);
+
+    generatePony();
     tick();
 
     // ---------- controls: buttons ----------
@@ -1721,7 +2114,7 @@
       btnWalk.classList.toggle('active', next === 'walk');
       btnRoll.classList.toggle('active', next === 'roll');
       btnTurbo.classList.toggle('active', next === 'turbo');
-      caption.textContent = CAPTIONS[next];
+      caption.textContent = captionFor(next, currentGenome);
       resetHead();
       if (next === 'walk') resetPose();
       if (next === 'turbo') resetTurbo();
